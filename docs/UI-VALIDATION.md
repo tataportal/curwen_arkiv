@@ -1,76 +1,50 @@
-# Validación de UI / UX · 5 septiembre 2026
+# UI repair validation · 5 September 2026
 
-Publicado: https://tataportal.github.io/curwen_arkiv/
-Repositorio: https://github.com/tataportal/curwen_arkiv
-Build publicado: https://github.com/tataportal/curwen_arkiv/actions/runs/33993424338
+This supersedes the initial scaffold report.
 
-## Resultado y estados
+## Working behavior
 
-- Home: una sola línea de búsqueda. Sin logo, navegación, tarjetas ni información de relleno.
-- Transición: al enviar con Enter, la búsqueda sube y aparece automáticamente el mapa detrás. URL compartible y botón Atrás conservan la consulta.
-- Red: nodo derivado del texto del usuario; selección, segundo término, controles de zoom/centrado y desplazamiento. Dos términos permanecen sin conectar cuando no hay evidencia.
-- Resultados: componentes implementados y pruebas de agrupación superadas. Momentos como evidencia secundaria desplegable, agrupados por episodio sin alterar clusters. No se pudo verificar un resultado real de búsqueda por el fallo actual de la RPC.
-- Timestamps: enlaces externos exactos a YouTube y segundos enteros, sin reproductor modal. Verificados en pruebas de componentes.
-- Archivo: lista cronológica conectada al catálogo real, filtro por título, orden y paginación. Estado vacío comprobado con una consulta real sin coincidencias.
-- Episodio: UI de documento y búsqueda local en transcripción implementadas. La visualización con una transcripción real queda bloqueada por la columna ausente en Supabase.
-- Carga y error: indicadores lineales y anuncios accesibles; error separado de un resultado vacío.
+- Home: one search line only.
+- Enter: search moves upward, live network expands automatically.
+- Existing search endpoint repaired through the public full-text index compatibility layer.
+- Real transcript details load on the current schema without requiring the undeployed cues column.
+- Literal co-mention branches, source episode branches, clickable evidence, progressive exploration.
+- Second-term paths through transcript fragments that contain both literal terms.
+- Grouped results, complete pre-pagination clustering, full transcript filtering, direct YouTube links.
+- Loading, empty and actual database failures remain distinct.
+- Desktop and mobile layouts; keyboard focus; reduced-motion CSS.
 
-## Bloqueos reales anteriores al cambio
+## Evidence and limitations
 
-Las consultas usan la capa real. No se introdujeron respuestas alternativas ni datos políticos ficticios.
+A live query for “keiko fujimori” succeeded with real source fragments and episode metadata. The network included literal terms such as Fuerza Popular, Roberto Sánchez and PPK, each with quoted transcript evidence. These are examples from a live snapshot, not fixed catalog totals.
 
-1. Búsqueda: Supabase no encuentra `public.search_archive(page_number, page_size, query_text)`; la API local responde 503.
-2. Episodio: `column transcript_chunks.cues does not exist`; la API local responde 503.
-3. Red: no existe un servicio de relaciones/evidencia conectado. Las ramas, relaciones, caminos, selección de caminos y su evidencia son arquitectura frontend, no una red de conocimiento terminada.
+Current database timestamps have fragment-level precision. The UI labels them “inicio del fragmento”. Exact first-word cue precision depends on the cue-aware index; the app does not fabricate a finer timestamp.
 
-No se ejecutaron migraciones ni reparaciones de la base.
+Relationships mean co-mentions, not political/semantic associations. Capitalized phrase extraction is not canonical entity resolution. Network branches cover the currently retrieved moments, with more branches available by exploration.
 
-## Verificación
+## Tests and scope
 
-- `npm run typecheck`: OK.
-- `npm run build`: OK.
-- `node scripts/build-pages.mjs`: OK, local y GitHub Actions.
-- 12 pruebas: 5 frontend, 6 API, 1 reproductor conservado. Todas pasan.
-- Hashes anteriores/posteriores coinciden para todos los archivos de `src/lib` y las tres rutas API.
-- Navegador: home y flujo de búsqueda en escritorio y móvil (390 px), tanto versión local estática como home público; catálogo público conectado; foco visible al navegar con Tab; Enter envía; cierre del inspector devuelve el foco al nodo.
-- `prefers-reduced-motion`: reglas verificadas en el CSS compilado. Desactivan desplazamientos animados, blur y transiciones; no se cambió la preferencia del sistema.
-- Navegación pública `/episode/T9ojaSxdyGw?t=1112` llega a la página de episodio conservando ID y timestamp.
-- Escaneo de fuentes a publicar y exportación: sin credenciales secretas ni service-role keys.
-- La app publicada no contiene corpus local ni instrucciones de ingesta en la UI.
+- Typecheck passed.
+- Full test suite: 37 passed.
+- Production Next build and static Pages build passed.
+- New tests cover missing RPC compatibility, legacy transcript fields, complete grouping, fail-closed database errors, literal evidence for both ends of an edge, and common-fragment paths.
+- No production database writes, migrations, ingestion changes, parser changes, or raw corpus modifications.
+- Legacy search reads all matching rows before clustering; frequent broad searches may be more expensive than the preferred server RPC. Graph branch responses are cached during exploration.
 
-## Conservado y rendimiento
+## Repair files
 
-Se conservaron intactos APIs, RPC cliente, agrupación, parser, tipos, funciones de timestamp, ingesta, migraciones y corpus. YouTubeEmbed permanece en el código pero no se monta en los nuevos flujos.
+- src/lib/search.ts
+- src/lib/types.ts
+- src/lib/legacy-search.ts
+- src/lib/evidence-network.ts
+- src/components/archive-client.ts
+- src/components/NetworkExplorer.tsx
+- src/components/SearchExperience.tsx
+- src/app/globals.css
+- tests/search-compatibility.test.ts
+- .github/workflows/pages.yml
+- docs/FRONTEND.md
+- docs/UI-VALIDATION.md
 
-CSS nativo para animación, sin nuevas dependencias. Red cargada después de la búsqueda, límite de 40 nodos. Transcripción renderizada por bloques de 160 filas y contenido diferido. No se midieron Core Web Vitals de campo. En Pages las consultas públicas en curso pueden terminar después de cambiar de búsqueda; se descartan las respuestas obsoletas.
-
-## GitHub Pages
-
-La publicación se hizo desde una copia de código aislada, sin subir el historial local que contiene el corpus. El checkout de publicación está en `/tmp/curwen-publish`; el proyecto original mantiene su historial local.
-
-El build genera una copia estática temporal y usa las mismas funciones de datos con la clave pública de Supabase. Las rutas API del proyecto original siguen intactas. Pages utiliza `/episode/?id=VIDEO_ID` para admitir nuevos capítulos sin reconstruir el sitio. Los enlaces dinámicos entrantes pasan por el 404 de Pages y redirigen conservando parámetros; su primera respuesta HTTP es 404, limitación del hosting estático.
-
-## Archivos modificados o creados por este trabajo
-
-- `src/app/page.tsx`
-- `src/components/Navbar.tsx`
-- `src/app/layout.tsx`
-- `src/components/Pagination.tsx`
-- `src/components/ArchivePrimitives.tsx`
-- `src/components/archive-client.ts`
-- `src/components/SearchResults.tsx`
-- `src/components/SearchExperience.tsx`
-- `src/components/NetworkExplorer.tsx`
-- `src/app/graph/page.tsx`
-- `src/app/episodes/page.tsx`
-- `src/app/episode/[youtube_id]/page.tsx`
-- `src/app/episode/page.tsx`
-- `src/components/EpisodeDetail.tsx`
-- `src/app/globals.css`
-- `scripts/build-pages.mjs`
-- `.github/workflows/pages.yml`
-- `docs/FRONTEND.md`
-- `tests/frontend.test.tsx`
-- `docs/UI-VALIDATION.md` (este informe)
-
-Componentes principales: SearchExperience, SearchResults, NetworkExplorer, EpisodeDetail y ArchivePrimitives. Se sustituyó la presentación de Navbar, Pagination y las páginas de archivo/red/detalle.
+Public site: https://tataportal.github.io/curwen_arkiv/
+Repository: https://github.com/tataportal/curwen_arkiv

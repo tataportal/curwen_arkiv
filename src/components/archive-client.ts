@@ -10,7 +10,7 @@ export async function archiveRequest<T>(path: string, signal: AbortSignal): Prom
     const url = new URL(path, 'https://archive.local');
     const p = url.searchParams;
     let data: unknown;
-    if (url.pathname === '/api/search') data = await api.searchTranscript(p.get('q') || '', Number(p.get('page') || 1));
+    if (url.pathname === '/api/search') data = await api.searchTranscript(p.get('q') || '', Number(p.get('page') || 1), 20, signal);
     else if (url.pathname === '/api/episodes') data = await api.getEpisodes(Number(p.get('page') || 1), 24, p.get('q') || '', p.get('order') === 'asc' ? 'asc' : 'desc');
     else if (url.pathname.startsWith('/api/episode/')) data = { episode: await api.getEpisodeByYoutubeId(url.pathname.split('/').pop() || '') };
     else throw new Error('Consulta no disponible.');

@@ -172,3 +172,36 @@ main { position:relative; min-height:100dvh; outline:none; }
   *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
   .search-field.is-loading::after,.loading-line::after { transform:scaleX(.5); opacity:.5; }
 }
+
+/* Evidence-backed network */
+.home-network { height:calc(76svh - 80px); }
+.search-content { margin-top:calc(78svh - 66px); }
+.network-node { max-width:190px; line-height:1.35; gap:12px; padding:12px; }
+.network-node .node-label { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.document-node { color:var(--secondary); }
+.document-node .node-label { font-size:.76em; }
+.network-node small { font-size:.65em; color:var(--secondary); }
+.network-edges line { stroke-width:.8; opacity:.42; }
+.network-edges line.active { opacity:1; stroke-width:1.2; }
+.edge-target { position:absolute; transform:translate(-50%,-50%); width:30px; height:30px; color:var(--accent); border-radius:50%; z-index:1; }
+.edge-target span { opacity:0; font-size:11px; background:var(--bg); padding:4px; transition:opacity 160ms; }
+.edge-target:hover span,.edge-target:focus-visible span { opacity:1; }
+.network-inspector { top:32px; right:28px; width:370px; max-height:calc(100% - 48px); overflow-y:auto; background:rgba(10,11,11,.98); border-bottom:1px solid var(--line); overscroll-behavior:contain; }
+.network-inspector h2 { line-height:1.5; font-size:14px; }
+.network-evidence { border-top:1px solid var(--line); padding-top:20px; margin-top:20px; }
+.network-evidence h3 { font-size:11px; font-weight:400; line-height:1.6; margin:10px 0; color:var(--secondary); }
+.network-evidence p { color:#c5c7c0; font-size:13px; line-height:1.8; }
+.evidence-precision { font-size:10px; color:var(--secondary); margin-left:12px; }
+.related-evidence { display:flex; flex-direction:column; align-items:flex-start; border-top:1px solid var(--line); margin-top:20px; padding-top:10px; }
+.network-status { position:absolute; bottom:10px; width:100%; text-align:center; color:var(--secondary); font-size:12px; }
+.precision-note { color:var(--secondary); font-size:11px; margin:-12px 0 25px; }
+.path-switcher { flex-wrap:wrap; font-size:11px; gap:20px; }
+@media(max-width:640px) {
+ .home-network { height:calc(74svh - 80px); }
+ .search-content { margin-top:calc(77svh - 66px); }
+ .network-node { max-width:170px; padding:8px; }
+ .network-inspector { top:10px; bottom:auto; right:16px; max-height:calc(100% - 20px); width:calc(100% - 32px); }
+ .network-evidence p { font-size:13px; }
+ .network-controls { right:20px; bottom:-10px; }
+}
+.network-node { transform:translate(-50%,-2px); padding:0 8px; min-height:44px; }

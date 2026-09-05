@@ -1,27 +1,33 @@
-# Curwen Archive frontend
+# Curwen Archive
 
-Home contains only a search line. Submitting moves it upward and opens the network behind it. Actual transcript moments are available as a secondary evidence list, grouped by episode without changing the API's conversation clusters.
+Home contains only a search line. Enter moves it upward and opens a real network of transcript co-mentions. Every edge has source text and a YouTube link. The archive, result groups and searchable transcript use the public Supabase data.
 
-## Run
+## Data compatibility
+
+The preferred search path remains the existing search_archive RPC. If PostgreSQL reports that this function is not deployed, the application queries the existing Spanish full-text index via Supabase's public read API. It reads every matching fragment before applying the same 90-second gap / 120-second discussion-span grouping and then paginates. Database outages and permissions errors still fail visibly.
+
+Episode retrieval supports both schemas: cue-bearing transcripts and the current fragment-only records. The fallback is restricted to the specific missing-cues-column error. No migration, ingest, corpus rewrite, or database write is performed by the UI or its build.
+
+Fragment-level records expose the source fragment's start time. They are explicitly labeled as such; they are not represented as exact word-level occurrences. If the cue-aware RPC becomes available, it is used automatically.
+
+## Evidence network
+
+Terms are literal capitalized phrases/acronyms found in returned transcript excerpts, with repeated evidence required for a term branch. They are not a curated, canonical entity catalog. Edges mean co-mention in the same fragment; they do not assert affiliation, guilt, support, financing, or another semantic political relationship.
+
+Nodes expand with another real search. Episode nodes open evidence. A second term searches for shared fragments and exposes up to three source-backed paths through those fragments. Each path requires both literal terms in the same text. No transitive political relationships are inferred.
+
+The network represents the currently retrieved moments, not an exhaustive entity graph for the entire corpus. Initial expansion is bounded, history remains visible, the map can be moved/zoomed, and the node count is capped at 40. Network code is loaded after search.
+
+## Run and deploy
 
 - npm run dev
 - npm run typecheck
+- npm test
 - npm run build
 - node scripts/build-pages.mjs
 
-## Hosting
+GitHub Pages builds a static copy in a temporary directory. Existing Next API routes stay available for server deployments. The static browser calls the same data functions using only the public Supabase key configured through GitHub repository variables.
 
-The regular Next app retains its existing /api routes and /episode/[youtube_id] route.
-GitHub Pages exports a static copy in a temporary build directory. It uses the existing search/data functions against Supabase using only a public anonymous/publishable key. No service-role credential is included. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY as GitHub Actions repository variables.
+Pages episode links use /episode/?id=VIDEO_ID so newly imported episodes do not require a rebuild. Inbound /episode/VIDEO_ID links redirect through the Pages 404 shell, preserving timestamps. Their first HTTP response is 404, a Pages limitation.
 
-Pages episode links use /episode/?id=VIDEO_ID so newly imported episodes work without rebuilding. Inbound /episode/VIDEO_ID links are redirected by the Pages 404 shell, preserving the timestamp. A direct dynamic URL initially receives HTTP 404 because Pages has no server rewrites.
-
-The static build never reads or exports data/raw. Ingestion and migrations are not run by the Pages workflow.
-
-## Network contract
-
-NetworkExplorer accepts an optional NetworkSource with neighbors and paths methods. No source is connected yet. User-entered terms are query nodes, not identified political entities. No edges or evidence are synthesized. Evidence-backed edge rendering, branch selection, second-term entry, path selection, and evidence links have frontend scaffolding only.
-
-## Performance and accessibility
-
-CSS-only scene transitions; no animation dependency. The network is loaded after search and capped at 40 nodes. Transcript rendering grows in 160-row increments. Timestamp links open YouTube directly. Forms have labels, status announcements, keyboard controls and visible focus. Reduced motion disables spatial movement and blur transitions.
+The publish checkout is /tmp/curwen-publish. The working directory's original git history and local downloaded corpus were not uploaded.

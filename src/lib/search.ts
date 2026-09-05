@@ -1,6 +1,7 @@
 import { getSupabaseClient } from './supabase';
 import type { ClusteredSearchResult, SearchResponse, Video, TranscriptChunk } from './types';
 import { formatTimestamp, buildYouTubeTimestampUrl } from './utils';
+import { searchIndexedFragments } from './legacy-search';
 
 export class ArchiveError extends Error {
   constructor(message: string, public status = 503) { super(message); }
@@ -20,12 +21,22 @@ function databaseError(error: { message: string }) {
   console.error('Archive database error:', error.message);
   return new ArchiveError('No se pudo consultar el archivo. Intenta nuevamente.');
 }
-export async function searchTranscript(query: string, page = 1, pageSize = 20): Promise<SearchResponse> {
+export async function searchTranscript(query: string, page = 1, pageSize = 20, signal?: AbortSignal): Promise<SearchResponse> {
   pagination(page, pageSize);
   const trimmed = query.trim();
   if (trimmed.length > 500) throw new ArchiveError('La búsqueda es demasiado larga.', 400);
   if (!trimmed) return { query: '', page, page_size: pageSize, total_clusters: 0, total_chunk_hits: 0, total_occurrences: 0, results: [] };
-  const { data, error } = await client().rpc('search_archive', { query_text: trimmed, page_number: page, page_size: pageSize });
+  const db = client();
+  let request = db.rpc('search_archive', { query_text: trimmed, page_number: page, page_size: pageSize });
+  if (signal) request = request.abortSignal(signal);
+  const { data, error } = await request;
+  // Support the existing public full-text index while a cue-aware schema is not
+  // deployed. Only known schema-availability errors take this route; database
+  // outages and permission errors still fail explicitly.
+  if (error && (error.code === 'PGRST202' || /Cue index unavailable/.test(error.message))) {
+    try { return await searchIndexedFragments(db, trimmed, page, pageSize, signal); }
+    catch (cause) { if (signal?.aborted) throw cause; throw databaseError(cause as Error); }
+  }
   if (error || !data) throw databaseError(error || { message: 'Empty RPC response' });
   const results: ClusteredSearchResult[] = data.results.map((r: any) => ({
     cluster_id: `${r.video_id}-${r.grp}`, video_id: r.video_id, youtube_id: r.youtube_id, video_title: r.video_title,
@@ -60,14 +71,16 @@ export async function getEpisodeByYoutubeId(youtubeId: string): Promise<(Video &
   const chunks: TranscriptChunk[] = [];
   // Fetch every page, including episodes exceeding PostgREST's default row cap.
   let total = Infinity;
+  let includeCues = true;
   while (chunks.length < total) {
     const { data, error, count } = await db.from('transcript_chunks')
-      .select('id,video_id,start_seconds,end_seconds,text,cues', { count: 'exact' }).eq('video_id', video.id)
+      .select(includeCues ? 'id,video_id,start_seconds,end_seconds,text,cues' : 'id,video_id,start_seconds,end_seconds,text', { count: 'exact' }).eq('video_id', video.id)
       .order('start_seconds').order('id').range(chunks.length, chunks.length + 499);
+    if (includeCues && error?.code === '42703' && /cues/.test(error.message)) { includeCues = false; continue; }
     if (error || !data || count === null) throw databaseError(error || { message: 'Missing transcript response' });
     total = count;
     if (!data.length && chunks.length < total) throw databaseError({ message: 'Transcript pagination stopped early' });
-    chunks.push(...data);
+    chunks.push(...(data as unknown as TranscriptChunk[]));
   }
   return { ...video, chunks };
 }

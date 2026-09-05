@@ -33,6 +33,7 @@ export interface ChunkTimestampMatch {
 }
 
 export interface ClusteredSearchResult {
+  timestamp_precision?: 'cue' | 'fragment';
   cluster_id: string;
   video_id: string;
   youtube_id: string;
@@ -51,6 +52,8 @@ export interface ClusteredSearchResult {
 }
 
 export interface SearchResponse {
+  timestamp_precision?: 'cue' | 'fragment';
+  total_episodes?: number;
   page: number;
   page_size: number;
   total_occurrences: number;

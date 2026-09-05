@@ -51,7 +51,7 @@ export default function SearchExperience() {
   }, [search]);
   return <div className={'search-experience ' + (activeQuery ? 'is-active ' : '') + (showResults ? 'show-results' : '')}>
     <h1 className="sr-only">Buscar en Curwen Archive</h1>
-    {activeQuery && <div className="home-network"><NetworkExplorer key={activeQuery} query={activeQuery} compact={showResults} /></div>}
+    {activeQuery && <div className="home-network"><NetworkExplorer key={activeQuery} query={activeQuery} compact={showResults} response={data} loading={loading} /></div>}
     <div className="search-anchor">
       <form role="search" className={'search-field ' + (loading ? 'is-loading' : '')} onSubmit={e => {
         e.preventDefault(); void search(query); input.current?.focus(); window.scrollTo({ top: 0, behavior: 'instant' });
@@ -71,7 +71,8 @@ export default function SearchExperience() {
         {data.results.length ? <>
           <div className="results-summary"><button className="text-action" onClick={() => setShowResults(v => !v)} aria-expanded={showResults}>
             {showResults ? 'Ocultar' : 'Ver'} {data.total_clusters.toLocaleString('es-PE')} {data.total_clusters === 1 ? 'momento' : 'momentos'} {showResults ? '↑' : '↓'}
-          </button>{showResults && <span>{new Set(data.results.map(r => r.youtube_id)).size} capítulos en esta página</span>}</div>
+          </button>{showResults && <span>{data.total_episodes ? data.total_episodes + ' capítulos' : new Set(data.results.map(r => r.youtube_id)).size + ' capítulos en esta página'}</span>}</div>
+          {showResults && data.timestamp_precision === 'fragment' && <p className="precision-note">Las marcas abren el inicio del fragmento transcrito.</p>}
           {showResults && <><SearchResults results={data.results} query={activeQuery} />
             <Pagination page={page} pageSize={data.page_size} total={data.total_clusters} onChange={p => {
               void search(activeQuery, p); input.current?.focus(); window.scrollTo({ top: 0, behavior: 'instant' });
