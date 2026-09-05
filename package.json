@@ -1,0 +1,45 @@
+{
+  "name": "curwen-archive",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "ingest": "tsx scripts/import-curwen.ts",
+    "test": "node --import tsx --test tests/*.test.ts tests/*.test.tsx",
+    "typecheck": "tsc --noEmit --incremental false",
+    "dry-run": "node --import tsx scripts/import-curwen.ts data/raw --dry-run --expected 477 --report reports/corpus-dry-run.json"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@supabase/server": "^1.5.3",
+    "@supabase/supabase-js": "^2.115.0",
+    "cytoscape": "^3.34.2",
+    "dotenv": "^17.4.2",
+    "lucide-react": "^1.41.0",
+    "next": "^16.3.4",
+    "pg": "^8.23.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/cytoscape": "^3.21.9",
+    "@types/node": "^26.4.1",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@types/react-test-renderer": "^19.1.0",
+    "autoprefixer": "^10.5.5",
+    "postcss": "^8.5.28",
+    "react-test-renderer": "^19.2.8",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}
