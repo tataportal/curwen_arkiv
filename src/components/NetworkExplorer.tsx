@@ -21,6 +21,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
   const [zoom,setZoom]=useState(1);
   const viewport=useRef<HTMLDivElement>(null);
   const plane=useRef<HTMLDivElement>(null);
+  const inspector=useRef<HTMLElement>(null);
   const pending=useRef<AbortController|null>(null);
   const expanded=useRef(new Map<string,NetworkBranch>());
   const cache=useRef(new Map<string,SearchResponse>());
@@ -29,19 +30,20 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
   const drag=useRef<{x:number;y:number;dx:number;dy:number}|null>(null);
   const selectedNode=nodes.find(n=>n.id===selected);
   const activePath=paths[pathIndex];
-  const incident=edges.filter(e=>e.source===selected||e.target===selected);
+  const visibleNodes=nodes.filter(n=>n.kind!=='moment'||activePath?.nodes.some(p=>p.id===n.id));
+  const incident=edges.filter(e=>(e.source===selected||e.target===selected)&&visibleNodes.some(n=>n.id===e.source)&&visibleNodes.some(n=>n.id===e.target));
   const evidence:Evidence[]=edge?.evidence || selectedNode?.evidence || incident[0]?.evidence || [];
   function transform(z=zoom) { if(plane.current) plane.current.style.transform='translate('+offset.current.x+'px,'+offset.current.y+'px) scale('+z+')'; }
   useEffect(()=>{transform();},[zoom]);
   useEffect(()=>()=>pending.current?.abort(),[]);
   function fit() {
     if(!viewport.current||!nodes.length)return;
-    const xs=nodes.map(n=>n.x),ys=nodes.map(n=>n.y);
+    const xs=visibleNodes.map(n=>n.x),ys=visibleNodes.map(n=>n.y);
     const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
     const z=Math.max(.55,Math.min(1,viewport.current.clientWidth/(maxX-minX+210),viewport.current.clientHeight/(maxY-minY+140)));
     offset.current={x:-(minX+maxX)/2*z,y:-(minY+maxY)/2*z};setZoom(z);transform(z);
   }
-  useEffect(()=>{fit();},[nodes.length]);
+  useEffect(()=>{fit();},[nodes.length,pathIndex]);
   function merge(anchor:PositionedNode,branch:NetworkBranch,all=false) {
     const mobile=(viewport.current?.clientWidth||1000)<640;
     const limit=all?10:mobile?4:7;
@@ -66,14 +68,33 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
     const ids=new Set([anchor.id,...choices.map(n=>n.id)]);
     setEdges(previous=>[...previous,...branch.edges.filter(e=>ids.has(e.source)&&ids.has(e.target)&&!previous.some(old=>old.id===e.id))]);
   }
-  function applyPaths(next:ConnectionPath[]) {
-    setPaths(next);setPathIndex(0);
-    const path=next[0]; if(!path)return;
+  function showPath(path:ConnectionPath) {
     setNodes(previous=>{
-      const ids=new Set(previous.map(n=>n.id));
-      return [...previous,...path.nodes.filter(n=>!ids.has(n.id)).map((n,i)=>({...n,x:n.kind==='moment'?0:210,y:n.kind==='moment'?90:0,depth:0}))].slice(0,40);
+      const placed=[...previous];
+      for(const [i,n] of path.nodes.entries()) {
+        if(placed.some(old=>old.id===n.id))continue;
+        if(n.kind==='term')placed.push({...n,x:i?210:-210,y:0,depth:0});
+      }
+      const from=placed.find(n=>n.id===path.nodes[0].id)!;
+      const to=placed.find(n=>n.id===path.nodes.at(-1)!.id)!;
+      const dx=to.x-from.x,dy=to.y-from.y,length=Math.hypot(dx,dy)||1;
+      for(const n of path.nodes.filter(n=>n.kind==='moment')) {
+        if(placed.some(old=>old.id===n.id))continue;
+        let x=0,y=0;
+        for(let distance=120;distance<=600;distance+=60) {
+          x=(from.x+to.x)/2-dy/length*distance;y=(from.y+to.y)/2+dx/length*distance;
+          if(!placed.some(other=>other.kind!=='moment'&&Math.abs(other.x-x)<150&&Math.abs(other.y-y)<80))break;
+        }
+        placed.push({...n,x,y,depth:0});
+      }
+      return placed.slice(0,40);
     });
     setEdges(previous=>[...previous,...path.edges.filter(e=>!previous.some(old=>old.id===e.id))]);
+    setEdge(path.edges[0]);inspector.current?.scrollTo({top:0,behavior:'instant'});
+  }
+  function applyPaths(next:ConnectionPath[]) {
+    setPaths(next);setPathIndex(0);
+    if(next[0])showPath(next[0]);
   }
   async function fetchResults(label:string,signal:AbortSignal) {
     const saved=cache.current.get(label);if(saved)return saved;
@@ -103,7 +124,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
     return()=>controller.abort();
   },[query,response===undefined]);
   async function expand(node:PositionedNode) {
-    setSelected(node.id);setEdge(null);
+    setSelected(node.id);setEdge(null);setPaths([]);
     if(node.kind!=='term'){setStatus('idle');return;}
     const existing=expanded.current.get(node.id);
     if(existing){merge(node,existing,true);setStatus(existing.nodes.length?'idle':'empty');return;}
@@ -135,11 +156,11 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
     }} onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}}>
       <div className="network-plane" ref={plane}>
         <svg className="network-edges" viewBox="-600 -400 1200 800" aria-hidden="true">
-          {edges.map(e=>{const a=nodes.find(n=>n.id===e.source),b=nodes.find(n=>n.id===e.target);return a&&b?<line key={e.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={edge?.id===e.id||activePath?.edges.some(p=>p.id===e.id)?'active':''}/>:null;})}
+          {edges.map(e=>{const a=visibleNodes.find(n=>n.id===e.source),b=visibleNodes.find(n=>n.id===e.target);return a&&b?<line key={e.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={edge?.id===e.id||activePath?.edges.some(p=>p.id===e.id)?'active':''}/>:null;})}
         </svg>
-        {edges.map(e=>{const a=nodes.find(n=>n.id===e.source),b=nodes.find(n=>n.id===e.target);return a&&b?<button key={e.id} className="edge-target" style={{left:'calc(50% + '+(a.x+b.x)/2+'px)',top:'calc(50% + '+(a.y+b.y)/2+'px)'}} aria-label={'Ver evidencia entre '+a.label+' y '+b.label}
+        {edges.map(e=>{const a=visibleNodes.find(n=>n.id===e.source),b=visibleNodes.find(n=>n.id===e.target);return a&&b?<button key={e.id} className="edge-target" style={{left:'calc(50% + '+(a.x+b.x)/2+'px)',top:'calc(50% + '+(a.y+b.y)/2+'px)'}} aria-label={'Ver evidencia entre '+a.label+' y '+b.label}
           onClick={event=>{returnFocus.current=event.currentTarget;setEdge(e);setSelected(e.target);}}><span>{e.evidence.length}</span></button>:null;})}
-        {nodes.map(node=><button key={node.id} className={'network-node '+(node.id===selected?'selected ':'')+(node.kind!=='term'?'document-node ':'')+(activePath&&!activePath.nodes.some(n=>n.id===node.id)?'distant':'')}
+        {visibleNodes.map(node=><button key={node.id} className={'network-node '+(node.id===selected?'selected ':'')+(node.kind!=='term'?'document-node ':'')+(activePath&&!activePath.nodes.some(n=>n.id===node.id)?'distant':'')}
           style={{left:'calc(50% + '+node.x+'px)',top:'calc(50% + '+node.y+'px)',fontSize:Math.min(26,14/zoom)+'px'}}
           aria-pressed={node.id===selected} aria-label={node.label}
           onClick={event=>{returnFocus.current=event.currentTarget;void expand(node);}}>
@@ -154,7 +175,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
       <button className="icon-button" aria-label="Centrar mapa" onClick={fit}><Maximize2 size={14}/></button>
     </div>}
     {response===undefined&&status==='error'&&!selectedNode&&<p className="network-status">No se pudo consultar la red. Vuelve a buscar.</p>}
-    {(selectedNode||edge)&&<aside className="network-inspector reveal" aria-label="Evidencia de la conexión" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();close();}}}>
+    {(selectedNode||edge)&&<aside ref={inspector} className="network-inspector reveal" aria-label="Evidencia de la conexión" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();close();}}}>
       <button className="inspector-close icon-button" aria-label="Cerrar evidencia" onClick={close}><X size={16}/></button>
       <h2>{edge?nodes.find(n=>n.id===edge.source)?.label+' · '+nodes.find(n=>n.id===edge.target)?.label:selectedNode?.label}</h2>
       <p className="secondary" role="status">{status==='loading'?'Buscando menciones…':status==='error'?'No se pudo consultar esta rama.':status==='empty'?'No se encontraron co-menciones para esta selección.':edge?.label||'Conexiones encontradas en los momentos consultados.'}</p>
@@ -168,7 +189,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
         <button disabled={!second.trim()} aria-label="Buscar conexión">↵</button>
       </form>}
       {paths.length>0&&<nav className="path-switcher" aria-label="Fragmentos compartidos">{paths.map((p,i)=><button key={p.id} aria-pressed={i===pathIndex} onClick={()=>{
-        setPathIndex(i);setNodes(previous=>[...previous,...p.nodes.filter(n=>!previous.some(old=>old.id===n.id)).map(n=>({...n,x:0,y:90,depth:0}))]);setEdges(previous=>[...previous,...p.edges.filter(e=>!previous.some(old=>old.id===e.id))]);setEdge(p.edges[0]);
+        setPathIndex(i);showPath(p);
       }}>Fragmento {i+1}</button>)}</nav>}
       {incident.length>1&&<div className="related-evidence">{incident.map(e=><button key={e.id} className="text-action" onClick={()=>setEdge(e)}>{nodes.find(n=>n.id===(e.source===selected?e.target:e.source))?.label} ↗</button>)}</div>}
     </aside>}
