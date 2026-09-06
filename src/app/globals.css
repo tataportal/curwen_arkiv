@@ -238,3 +238,5 @@ main { position:relative; min-height:100dvh; outline:none; }
   .list-video-preview { max-width:100%; }
   .moment-actions { gap:14px; }
 }
+.video-preview[data-preview-state="ended"] .preview-player,
+.video-preview[data-preview-state="error"] .preview-player { visibility:hidden; }
