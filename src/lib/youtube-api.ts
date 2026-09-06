@@ -2,7 +2,7 @@ export interface YouTubePlayer {
   destroy(): void; seekTo(seconds: number, allowSeekAhead: boolean): void;
   playVideo(): void; getCurrentTime(): number;
   setVolume(volume:number):void; getVolume():number; mute(): void; unMute(): void; isMuted(): boolean; pauseVideo(): void;
-  loadVideoById(options:{videoId:string;startSeconds:number;endSeconds:number}):void;
+  loadVideoById(options:{videoId:string;startSeconds:number;endSeconds?:number}):void;
 }
 export interface YouTubeAPI {
   Player: new (element: HTMLElement, options: { videoId: string; playerVars: Record<string, number|string>;

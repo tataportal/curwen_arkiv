@@ -66,3 +66,31 @@ test('preview enables sound before loading the exact 8-second range and destroys
    for(const [key,descriptor]of Object.entries(saved)){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else Reflect.deleteProperty(globalThis,key);}
  }
 });
+
+import {insidePreviewBuffer} from '../src/lib/preview-buffer';
+test('hover buffer covers node, card, accidental overshoot and their bridge, but not the rest of the map',()=>{
+ const anchor={left:80,right:180,top:220,bottom:260},card={left:240,right:624,top:160,bottom:490};
+ for(const [x,y] of [[130,240],[190,240],[215,240],[400,200],[650,300]])assert(insidePreviewBuffer(x,y,anchor,card));
+ for(const [x,y] of [[700,300],[0,0],[215,100],[130,400]])assert(!insidePreviewBuffer(x,y,anchor,card));
+ assert(insidePreviewBuffer(215,240,card,anchor));
+});
+test('continuous hover preview retains cue seek and volume, plays past eight seconds, then destroys on close',async()=>{
+ const loads:any[]=[];let options:any,time=20,pauses=0,destroyed=0,tick:(()=>void)|undefined;
+ const fake={destroy(){destroyed++;},seekTo(s:number){time=s;},pauseVideo(){pauses++;},setVolume(){},getVolume(){return 35;},mute(){},unMute(){},isMuted(){return false;},getCurrentTime(){return time;},loadVideoById(o:any){loads.push(o);}};
+ const saved=Object.fromEntries(['window','document','setInterval','clearInterval'].map(k=>[k,Object.getOwnPropertyDescriptor(globalThis,k)]));
+ Object.defineProperty(globalThis,'window',{value:{location:{origin:'https://example.test'},matchMedia:()=>({matches:false}),YT:{Player:class {constructor(_el:any,opts:any){options=opts;return fake;}}}},configurable:true});
+ Object.defineProperty(globalThis,'document',{value:{hidden:false,createElement:()=>({}),addEventListener(){},removeEventListener(){}},configurable:true});
+ Object.defineProperty(globalThis,'setInterval',{value:(cb:()=>void)=>{tick=cb;return 1;},configurable:true});
+ Object.defineProperty(globalThis,'clearInterval',{value:()=>{},configurable:true});
+ let tree:ReactTestRenderer|undefined;
+ try{
+  const occurrence={...fixture().moments[0].occurrences[0],videoId:'abcdefghijk',cue_start_seconds:1424.44};
+  await act(async()=>{tree=create(<VideoPreview continuous youtubeId="abcdefghijk" occurrence={occurrence} title="Evidence"/>,{createNodeMock:()=>({replaceChildren(){},querySelector(){return null;}})});});
+  await act(async()=>options.events.onReady({target:fake}));
+  assert.deepEqual(loads,[{videoId:'abcdefghijk',startSeconds:1424.44}]);
+  time=1460;await act(async()=>tick!());assert.equal(pauses,0);
+  await act(async()=>tree!.update(<VideoPreview continuous youtubeId="abcdefghijk" occurrence={occurrence} title="Evidence"/>));
+  assert.equal(loads.length,1);assert.equal(destroyed,0);
+  await act(async()=>tree!.unmount());tree=undefined;assert.equal(destroyed,1);
+ }finally{if(tree)await act(async()=>tree!.unmount());for(const [key,descriptor] of Object.entries(saved)){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else Reflect.deleteProperty(globalThis,key);}}
+});

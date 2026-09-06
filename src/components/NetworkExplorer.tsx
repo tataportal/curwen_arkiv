@@ -7,6 +7,7 @@ import {queryConcepts,searchExpression,evidenceMoments,type EvidenceMoment} from
 import type {RetrievalResponse as SearchResponse} from '@/lib/retrieval/model';
 import QuickEvidence,{type PreviewAnchor} from './QuickEvidence';
 import VolumeControl from './VolumeControl';
+import {PREVIEW_LEAVE_DELAY_MS} from '@/lib/preview-buffer';
 import {EvidenceDialog} from './EvidenceList';
 type PositionedNode=EvidenceNode&{x:number;y:number;depth:number};
 type Selection={id:string;label:string;anchor:PreviewAnchor;items:EvidenceMoment[];node?:PositionedNode;pinned:boolean};
@@ -24,7 +25,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
   const visibleNodes=nodes.filter(n=>n.kind==='term');
   function transform(z=zoom){if(plane.current)plane.current.style.transform='translate('+offset.current.x+'px,'+offset.current.y+'px) scale('+z+')';}
   useEffect(()=>{transform();},[zoom]);
-  function clearTimers(){if(enterTimer.current)clearTimeout(enterTimer.current);if(leaveTimer.current)clearTimeout(leaveTimer.current);}
+  function clearTimers(){if(enterTimer.current)clearTimeout(enterTimer.current);if(leaveTimer.current)clearTimeout(leaveTimer.current);enterTimer.current=null;leaveTimer.current=null;}
   useEffect(()=>()=>{pending.current?.abort();clearTimers();},[]);
   useEffect(()=>{if(compact){clearTimers();setPopup(null);setList(null);}},[compact]);
   function fit(){
@@ -103,9 +104,11 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
   function show(element:HTMLButtonElement,node?:PositionedNode,edge?:Relationship,pinned=false,delay=false){
     if(compact||list)return;clearTimers();returnFocus.current=element;
     const next=selection(element,node,edge,pinned);
-    if(delay)enterTimer.current=setTimeout(()=>setPopup(next),220);else setPopup(next);
+    if(popup?.id===next.id){if(pinned&&!popup.pinned)setPopup({...popup,pinned:true});return;}
+    if(delay)enterTimer.current=setTimeout(()=>{clearTimers();setPopup(next);},220);else setPopup(next);
   }
-  function leave(){if(enterTimer.current)clearTimeout(enterTimer.current);if(popup?.pinned)return;leaveTimer.current=setTimeout(()=>setPopup(null),350);}
+  function scheduleClose(){if(popup?.pinned||leaveTimer.current)return;leaveTimer.current=setTimeout(()=>{leaveTimer.current=null;setPopup(null);},PREVIEW_LEAVE_DELAY_MS);}
+  function leave(){if(enterTimer.current)clearTimeout(enterTimer.current);enterTimer.current=null;scheduleClose();}
   function close(){clearTimers();setPopup(null);skipFocus.current=true;returnFocus.current?.focus();setTimeout(()=>{skipFocus.current=false;},0);}
   return <section className={'network-explorer '+(compact?'is-receded ':'')+(popup||list?'has-evidence-preview':'')} aria-label="Mapa de conceptos" aria-busy={loading||status==='loading'} onKeyDown={e=>{if(e.key==='Escape'&&popup){e.stopPropagation();close();}}}>
     <VolumeControl/>
@@ -128,7 +131,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
     {nodes.length>1&&<div className="network-controls"><button className="icon-button" aria-label="Alejar mapa" disabled={zoom<=.25} onClick={()=>{close();setZoom(z=>Math.max(.25,z-.15));}}><Minus size={15}/></button><button className="icon-button" aria-label="Acercar mapa" disabled={zoom>=1.6} onClick={()=>{close();setZoom(z=>Math.min(1.6,z+.15));}}><Plus size={15}/></button><button className="icon-button" aria-label="Centrar mapa" onClick={()=>{close();fit();}}><Maximize2 size={14}/></button></div>}
     {status==='error'&&<p className="network-status">No se pudo consultar esta rama. Vuelve a buscar.</p>}
     {status==='empty'&&!popup&&<p className="network-status">Sin conceptos relacionados con evidencia suficiente.</p>}
-    {popup&&!list&&!compact&&<QuickEvidence pinned={popup.pinned} anchor={popup.anchor} label={popup.label} items={popup.items} onClose={close} onEnter={clearTimers} onLeave={leave} onMoments={()=>{clearTimers();setList(popup);}} onExplore={popup.node?()=>void expand(popup.node!):undefined}/>}
+    {popup&&!list&&!compact&&<QuickEvidence pinned={popup.pinned} anchor={popup.anchor} label={popup.label} items={popup.items} onClose={close} onEnter={clearTimers} onLeave={scheduleClose} onMoments={()=>{clearTimers();setList(popup);}} onExplore={popup.node?()=>void expand(popup.node!):undefined}/>}
     {list&&!compact&&<EvidenceDialog items={list.items} label={list.label} onClose={()=>{setList(null);close();}}/>}
   </section>;
 }
