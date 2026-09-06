@@ -8,9 +8,10 @@ export default function VideoPreview({youtubeId,occurrence,title}:{youtubeId:str
   const host=useRef<HTMLDivElement>(null),player=useRef<YouTubePlayer|null>(null);
   const [state,setState]=useState('loading'),[observedStart,setObservedStart]=useState<number|null>(null);
   const firstPlaying=useRef(false);
+  const [muted,setMuted]=useState<boolean|null>(null);
   const start=occurrence.cue_start_seconds;
   if(!Number.isFinite(start)||start<0||occurrence.videoId!==youtubeId)throw new Error('Preview requires a valid cue occurrence');
-  const play=()=>{setState('playing');player.current?.mute();player.current?.loadVideoById({videoId:youtubeId,startSeconds:start,endSeconds:start+PREVIEW_SECONDS});};
+  const play=()=>{setState('playing');player.current?.unMute();player.current?.loadVideoById({videoId:youtubeId,startSeconds:start,endSeconds:start+PREVIEW_SECONDS});};
   useEffect(()=>{
     let disposed=false,stopped=false,instance:YouTubePlayer|undefined;
     const container=host.current;if(!container)return;
@@ -18,11 +19,11 @@ export default function VideoPreview({youtubeId,occurrence,title}:{youtubeId:str
     const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     loadYouTubeAPI().then(api=>{
       if(disposed)return;
-      instance=new api.Player(mount,{videoId:youtubeId,playerVars:{start:Math.floor(start),autoplay:0,mute:1,playsinline:1,controls:0,rel:0,origin:window.location.origin},events:{
-        onReady:e=>{if(disposed)return;player.current=e.target;e.target.mute();container.querySelector('iframe')?.setAttribute('tabindex','-1');
+      instance=new api.Player(mount,{videoId:youtubeId,playerVars:{start:Math.floor(start),autoplay:0,mute:0,playsinline:1,controls:0,rel:0,origin:window.location.origin},events:{
+        onReady:e=>{if(disposed)return;player.current=e.target;e.target.unMute();container.querySelector('iframe')?.setAttribute('tabindex','-1');
           if(reduced||document.hidden){e.target.seekTo(start,true);e.target.pauseVideo();setState('paused');}
           else {e.target.loadVideoById({videoId:youtubeId,startSeconds:start,endSeconds:start+PREVIEW_SECONDS});setState('playing');}},
-        onStateChange:e=>{if(disposed)return;if(e.data===1){stopped=false;if(!firstPlaying.current&&player.current){firstPlaying.current=true;setObservedStart(player.current.getCurrentTime());}}if(e.data===0){stopped=true;setState('ended');}},
+        onStateChange:e=>{if(disposed)return;if(e.data===1){setMuted(player.current?.isMuted()??null);stopped=false;if(!firstPlaying.current&&player.current){firstPlaying.current=true;setObservedStart(player.current.getCurrentTime());}}if(e.data===0){stopped=true;setState('ended');}},
         onAutoplayBlocked:()=>{if(!disposed)setState('paused');},
         onError:()=>{if(!disposed)setState('error');},
       }});
@@ -32,7 +33,7 @@ export default function VideoPreview({youtubeId,occurrence,title}:{youtubeId:str
     document.addEventListener('visibilitychange',hide);
     return()=>{disposed=true;clearInterval(interval);document.removeEventListener('visibilitychange',hide);player.current=null;instance?.destroy();container.replaceChildren();};
   },[youtubeId,start]);
-  return <div className="video-preview" data-preview-state={state} data-start-seconds={start} data-observed-start-seconds={observedStart??undefined} data-end-seconds={start+PREVIEW_SECONDS}>
+  return <div className="video-preview" data-preview-state={state} data-muted={muted??undefined} data-start-seconds={start} data-observed-start-seconds={observedStart??undefined} data-end-seconds={start+PREVIEW_SECONDS}>
     <a className="preview-video-link" href={buildYouTubeTimestampUrl(youtubeId,start)} target="_blank" rel="noopener noreferrer" aria-label={`Abrir ${title} en YouTube desde ${formatTimestamp(start)}`}>
       <img src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`} alt=""/>
       <div ref={host} className="preview-player" aria-hidden="true"/>
