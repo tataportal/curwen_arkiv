@@ -94,8 +94,8 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
   function selection(element:HTMLButtonElement,node?:PositionedNode,edge?:Relationship,pinned=false){
     const r=element.getBoundingClientRect();
     const related=edge?[edge]:edges.filter(e=>e.source===node?.id||e.target===node?.id);
-    const raw=related.flatMap(e=>e.evidence);
-    if(!raw.length&&node)raw.push(...(cache.current.get(node.label)?.episodes||[]).flatMap(e=>e.moments.flatMap(m=>resultEvidence(e,m))).filter(e=>containsTerm(e.text,node.label)));
+    const own=node?cache.current.get(node.label):undefined;
+    const raw=own?own.episodes.flatMap(e=>e.moments.flatMap(m=>resultEvidence(e,m))):related.flatMap(e=>e.evidence);
     return {id:edge?.id||node!.id,label:edge?nodes.find(n=>n.id===edge.source)?.label+' · '+nodes.find(n=>n.id===edge.target)?.label:node!.label,
       items:evidenceMoments(raw),anchor:{left:r.left,right:r.right,top:r.top,bottom:r.bottom},node,pinned};
   }
