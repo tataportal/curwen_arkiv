@@ -7,6 +7,8 @@ import { GET as episodeRoute } from '../src/app/api/episode/[youtube_id]/route';
 import { getEpisodeByYoutubeId, getEpisodes, searchTranscript } from '../src/lib/search';
 process.env.NEXT_PUBLIC_SUPABASE_URL='https://archive-test.invalid';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY='test-key';
+process.env.NEXT_PUBLIC_RETRIEVAL_API_BASE='https://retrieval.invalid';
+import {response as retrievalResponse} from './retrieval-fixture';
 const originalFetch=globalThis.fetch;
 function response(body:unknown,status=200,total?:number) {return new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json',...(total!=null?{'content-range':`0-23/${total}`}:{})}});}
 test('database failure is HTTP 503, not a successful zero-result search',async()=>{
@@ -14,8 +16,8 @@ test('database failure is HTTP 503, not a successful zero-result search',async()
   try {const res=await searchRoute(new NextRequest('http://localhost/api/search?q=archivo'));assert.equal(res.status,503);assert((await res.json()).error);}finally{globalThis.fetch=originalFetch;}
 });
 test('zero matches are HTTP 200 with accurate zero totals',async()=>{
-  globalThis.fetch=async()=>response({query:'nada',page:1,page_size:20,total_clusters:0,total_chunk_hits:0,total_occurrences:0,results:[]});
-  try {const res=await searchRoute(new NextRequest('http://localhost/api/search?q=nada'));assert.equal(res.status,200);assert.equal((await res.json()).total_occurrences,0);}finally{globalThis.fetch=originalFetch;}
+  globalThis.fetch=async()=>response(retrievalResponse());
+  try {const res=await searchRoute(new NextRequest('http://localhost/api/search?q=nada'));assert.equal(res.status,200);assert.equal((await res.json()).totalOccurrences,0);}finally{globalThis.fetch=originalFetch;}
 });
 test('invalid pagination and video IDs are HTTP 400',async()=>{
   assert.equal((await episodesRoute(new NextRequest('http://localhost/api/episodes?page=-1'))).status,400);
@@ -33,6 +35,6 @@ test('episode retrieves all transcript pages and propagates second-page failure'
   try {assert.equal((await getEpisodeByYoutubeId('abcdefghijk'))?.chunks.length,1105);fail=true;await assert.rejects(()=>getEpisodeByYoutubeId('abcdefghijk'));}finally{globalThis.fetch=originalFetch;}
 });
 test('environment variables are resolved after importing helpers',async()=>{
-  globalThis.fetch=async()=>response({query:'archivo',page:1,page_size:20,total_clusters:0,total_chunk_hits:0,total_occurrences:0,results:[]});
-  try {assert.equal((await searchTranscript('archivo')).total_clusters,0);}finally{globalThis.fetch=originalFetch;}
+  globalThis.fetch=async()=>response(retrievalResponse());
+  try {assert.equal((await searchTranscript('archivo')).totalMoments,0);}finally{globalThis.fetch=originalFetch;}
 });

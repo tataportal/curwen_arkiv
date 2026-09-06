@@ -1,7 +1,4 @@
-'use client';
-import type {ClusteredSearchResult} from '@/lib/types';
+import type {RetrievalEpisode} from '@/lib/retrieval/model';
 import {resultMoments} from '@/lib/evidence-presentation';
 import {EvidenceList} from './EvidenceList';
-export default function SearchResults({results,query}:{results:ClusteredSearchResult[];query:string}) {
-  return <EvidenceList items={resultMoments(results)} query={query}/>;
-}
+export default function SearchResults({episodes,query}:{episodes:RetrievalEpisode[];query:string}) {return <EvidenceList items={resultMoments(episodes)} query={query}/>;}

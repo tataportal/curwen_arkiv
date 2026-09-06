@@ -1,3 +1,4 @@
+import {fixture} from './retrieval-fixture';
 import React from 'react';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,14 +42,14 @@ test('preview mutes before loading the exact 8-second range and destroys on swit
  Object.defineProperty(globalThis,'clearInterval',{value:()=>{},configurable:true});
  let tree:ReactTestRenderer|undefined;
  try {
-   await act(async()=>{tree=create(<VideoPreview youtubeId="abcdefghijk" seconds={1424.44} title="Evidence"/>,{createNodeMock:()=>({replaceChildren(){},querySelector(){return null;}})});});
+   await act(async()=>{tree=create(<VideoPreview youtubeId="abcdefghijk" occurrence={{...fixture().moments[0].occurrences[0],videoId:"abcdefghijk",cue_start_seconds:1424.44}} title="Evidence"/>,{createNodeMock:()=>({replaceChildren(){},querySelector(){return null;}})});});
    await act(async()=>{options.events.onReady({target:fake});});
    assert.deepEqual(calls.slice(0,2),['mute','load']);
    assert.deepEqual(loads[0],{videoId:'abcdefghijk',startSeconds:1424.44,endSeconds:1432.44});
    assert.equal(options.playerVars.controls,0);assert.equal(options.playerVars.playsinline,1);
    time=1432.5;await act(async()=>tick!());assert(calls.includes('pause'));
    assert.equal(tree!.root.findByProps({className:'video-preview'}).props['data-preview-state'],'ended');
-   await act(async()=>{tree!.update(<VideoPreview youtubeId="12345678901" seconds={23.2} title="Other"/>);});
+   await act(async()=>{tree!.update(<VideoPreview youtubeId="12345678901" occurrence={{...fixture().moments[0].occurrences[0],videoId:"12345678901",cue_start_seconds:23.2}} title="Other"/>);});
    assert.equal(destroyed,1);
    await act(async()=>tree!.unmount());tree=undefined;assert.equal(destroyed,2);
  } finally {

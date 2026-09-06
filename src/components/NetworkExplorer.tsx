@@ -4,7 +4,7 @@ import {Minus,Plus,Maximize2} from 'lucide-react';
 import {archiveRequest} from './archive-client';
 import {buildEvidenceBranch,buildCommonPaths,containsTerm,resultEvidence,termId,type EvidenceNode,type Relationship,type NetworkBranch} from '@/lib/evidence-network';
 import {queryConcepts,searchExpression,evidenceMoments,type EvidenceMoment} from '@/lib/evidence-presentation';
-import type {SearchResponse} from '@/lib/types';
+import type {RetrievalResponse as SearchResponse} from '@/lib/retrieval/model';
 import QuickEvidence,{type PreviewAnchor} from './QuickEvidence';
 import {EvidenceDialog} from './EvidenceList';
 type PositionedNode=EvidenceNode&{x:number;y:number;depth:number};
@@ -95,7 +95,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
     const r=element.getBoundingClientRect();
     const related=edge?[edge]:edges.filter(e=>e.source===node?.id||e.target===node?.id);
     const raw=related.flatMap(e=>e.evidence);
-    if(!raw.length&&node)raw.push(...(cache.current.get(node.label)?.results||[]).flatMap(resultEvidence).filter(e=>containsTerm(e.text,node.label)));
+    if(!raw.length&&node)raw.push(...(cache.current.get(node.label)?.episodes||[]).flatMap(e=>e.moments.flatMap(m=>resultEvidence(e,m))).filter(e=>containsTerm(e.text,node.label)));
     return {id:edge?.id||node!.id,label:edge?nodes.find(n=>n.id===edge.source)?.label+' · '+nodes.find(n=>n.id===edge.target)?.label:node!.label,
       items:evidenceMoments(raw),anchor:{left:r.left,right:r.right,top:r.top,bottom:r.bottom},node,pinned};
   }

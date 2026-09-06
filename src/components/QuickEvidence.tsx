@@ -15,9 +15,9 @@ export default function QuickEvidence({anchor,label,items,onClose,onEnter,onLeav
   },[anchor,items.length]);
   useLayoutEffect(()=>{if(pinned)card.current?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});},[pinned]);
   const first=items[0];
-  return createPortal(<div ref={card} role="dialog" aria-label={'Preview: '+label} className="quick-evidence" style={position} onPointerEnter={onEnter} onPointerLeave={onLeave} onFocus={onEnter} onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();onClose();}}}>
+  return createPortal(<div ref={card} role="dialog" aria-label={'Preview: '+label} className="quick-evidence" data-occurrence-id={items[0]?.occurrence.occurrenceId} data-cue-start-seconds={items[0]?.occurrence.cue_start_seconds} style={position} onPointerEnter={onEnter} onPointerLeave={onLeave} onFocus={onEnter} onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();onClose();}}}>
     <div className="quick-evidence-heading"><span>{label}</span><button aria-label="Cerrar preview" onClick={onClose}>×</button></div>
-    {first?<><VideoPreview key={first.id} youtubeId={first.youtubeId} seconds={first.seconds} title={first.title}/><div className="quick-caption"><TimestampLink youtubeId={first.youtubeId} seconds={first.seconds}/><p>{first.title}</p></div></>:<p className="quick-empty">Sin evidencia disponible para esta selección.</p>}
+    {first?<><VideoPreview key={first.id} youtubeId={first.youtubeId} occurrence={first.occurrence} title={first.title}/><div className="quick-caption"><TimestampLink youtubeId={first.youtubeId} seconds={first.occurrence.cue_start_seconds}/><p>{first.title}</p></div></>:<p className="quick-empty">Sin evidencia disponible para esta selección.</p>}
     <div className="quick-actions">{items.length>0&&<button className="text-action" onClick={onMoments}>Ver {items.length} {items.length===1?'momento':'momentos'} ↗</button>}{onExplore&&<button className="text-action" onClick={onExplore}>Explorar concepto →</button>}</div>
   </div>,document.body);
 }

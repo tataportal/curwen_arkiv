@@ -35,6 +35,7 @@ const env = {
   NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1',
   NEXT_PUBLIC_STATIC_ARCHIVE: 'true', NEXT_PUBLIC_SUPABASE_URL: url,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: key,
+  NEXT_PUBLIC_RETRIEVAL_API_BASE: process.env.NEXT_PUBLIC_RETRIEVAL_API_BASE || 'https://curwen-retrieval-api.tataportal.chatgpt.site',
 };
 const build = spawnSync(process.execPath, [join(root, 'node_modules/next/dist/bin/next'), 'build', '--webpack'], { cwd: stage, env, stdio: 'inherit' });
 if (build.status !== 0) process.exit(build.status || 1);

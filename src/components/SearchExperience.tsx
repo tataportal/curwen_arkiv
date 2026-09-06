@@ -65,17 +65,16 @@ export default function SearchExperience() {
       </form>
     </div>
     <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-      {loading ? 'Buscando ' + activeQuery : error ? 'No se pudo consultar el archivo.' : data ? data.total_clusters + ' momentos encontrados para ' + activeQuery : ''}
+      {loading ? 'Buscando ' + activeQuery : error ? 'No se pudo consultar el archivo.' : data ? data.totalMoments + ' momentos encontrados para ' + activeQuery : ''}
     </div>
     {activeQuery && <section className="search-content" aria-label="Resultados de búsqueda" aria-busy={loading}>
       {error ? <ArchiveError retry={() => void search(activeQuery, page, false)} /> : !loading && data && <>
-        {data.results.length ? <>
+        {data.episodes.length ? <>
           <div className="results-summary"><button className="text-action" onClick={() => setShowResults(v => !v)} aria-expanded={showResults}>
-            {showResults ? 'Ocultar' : 'Ver'} {data.total_clusters.toLocaleString('es-PE')} {data.total_clusters === 1 ? 'momento' : 'momentos'} {showResults ? '↑' : '↓'}
-          </button>{showResults && <span>{data.total_episodes ? data.total_episodes + ' capítulos' : new Set(data.results.map(r => r.youtube_id)).size + ' capítulos en esta página'}</span>}</div>
-          {showResults && data.timestamp_precision === 'fragment' && <p className="precision-note">Las marcas abren el inicio del fragmento transcrito.</p>}
-          {showResults && <><SearchResults results={data.results} query={activeQuery} />
-            <Pagination page={page} pageSize={data.page_size} total={data.total_clusters} onChange={p => {
+            {showResults ? 'Ocultar' : 'Ver'} {data.totalMoments.toLocaleString('es-PE')} {data.totalMoments === 1 ? 'momento' : 'momentos'} {showResults ? '↑' : '↓'}
+          </button>{showResults && <span>{data.totalEpisodes ? data.totalEpisodes + ' capítulos' : new Set(data.episodes.map(r => r.videoId)).size + ' capítulos en esta página'}</span>}</div>
+          {showResults && <><SearchResults episodes={data.episodes} query={activeQuery} />
+            <Pagination page={page} pageSize={data.pageSize} total={data.totalEpisodes} onChange={p => {
               void search(activeQuery, p); input.current?.focus(); window.scrollTo({ top: 0, behavior: 'instant' });
             }} /></>}
         </> : <div className="quiet-state"><p>No encontré menciones de “{activeQuery}”</p><p className="secondary">Prueba con otra persona, caso o término.</p></div>}

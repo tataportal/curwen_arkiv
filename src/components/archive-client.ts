@@ -1,4 +1,4 @@
-import type { SearchResponse, TranscriptChunk, Video } from '@/lib/types';
+import type { TranscriptChunk, Video } from '@/lib/types';
 export type EpisodeData = Video & { chunks: TranscriptChunk[] };
 export type EpisodeList = { episodes: Video[]; total: number; page: number; page_size: number };
 // Pages reuses the actual data layer with public RLS-scoped browser credentials.
@@ -26,4 +26,4 @@ export function episodeHref(youtubeId: string) {
   return process.env.NEXT_PUBLIC_STATIC_ARCHIVE === 'true'
     ? '/episode/?id=' + encodeURIComponent(youtubeId) : '/episode/' + youtubeId;
 }
-export type { SearchResponse };
+export type { RetrievalResponse as SearchResponse } from '@/lib/retrieval/model';

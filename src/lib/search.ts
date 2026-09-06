@@ -1,7 +1,8 @@
+import {validateRetrievalResponse} from './retrieval-contract';
 import { getSupabaseClient } from './supabase';
 import type { ClusteredSearchResult, SearchResponse, Video, TranscriptChunk } from './types';
 import { formatTimestamp, buildYouTubeTimestampUrl } from './utils';
-import { searchIndexedFragments } from './legacy-search';
+
 
 export class ArchiveError extends Error {
   constructor(message: string, public status = 503) { super(message); }
@@ -21,33 +22,14 @@ function databaseError(error: { message: string }) {
   console.error('Archive database error:', error.message);
   return new ArchiveError('No se pudo consultar el archivo. Intenta nuevamente.');
 }
-export async function searchTranscript(query: string, page = 1, pageSize = 20, signal?: AbortSignal): Promise<SearchResponse> {
-  pagination(page, pageSize);
-  const trimmed = query.trim();
-  if (trimmed.length > 500) throw new ArchiveError('La búsqueda es demasiado larga.', 400);
-  if (!trimmed) return { query: '', page, page_size: pageSize, total_clusters: 0, total_chunk_hits: 0, total_occurrences: 0, results: [] };
-  const db = client();
-  let request = db.rpc('search_archive', { query_text: trimmed, page_number: page, page_size: pageSize });
-  if (signal) request = request.abortSignal(signal);
-  const { data, error } = await request;
-  // Support the existing public full-text index while a cue-aware schema is not
-  // deployed. Only known schema-availability errors take this route; database
-  // outages and permission errors still fail explicitly.
-  if (error && (error.code === 'PGRST202' || /Cue index unavailable/.test(error.message))) {
-    try { return await searchIndexedFragments(db, trimmed, page, pageSize, signal); }
-    catch (cause) { if (signal?.aborted) throw cause; throw databaseError(cause as Error); }
-  }
-  if (error || !data) throw databaseError(error || { message: 'Empty RPC response' });
-  const results: ClusteredSearchResult[] = data.results.map((r: any) => ({
-    cluster_id: `${r.video_id}-${r.grp}`, video_id: r.video_id, youtube_id: r.youtube_id, video_title: r.video_title,
-    published_at: r.published_at, thumbnail_url: r.thumbnail_url, duration_seconds: r.duration_seconds,
-    primary_start_seconds: r.start_seconds, primary_end_seconds: r.end_seconds, primary_label: formatTimestamp(r.start_seconds),
-    youtube_jump_url: buildYouTubeTimestampUrl(r.youtube_id, r.start_seconds), combined_text: r.combined_text,
-    // Display transcript as text, never inject ts_headline/source HTML.
-    headline: '', best_rank: r.rank,
-    timestamps: r.timestamps.map((t: any) => ({ ...t, label: formatTimestamp(t.start_seconds) })),
-  }));
-  return { ...data, results };
+export async function searchTranscript(query:string,page=1,pageSize=20,signal?:AbortSignal):Promise<import('./retrieval/model').RetrievalResponse> {
+  pagination(page,pageSize);
+  const base=process.env.NEXT_PUBLIC_RETRIEVAL_API_BASE;
+  if(!base)throw new ArchiveError('Falta conectar el API de retrieval.');
+  const response=await fetch(base.replace(/\/$/,'')+'/api/search?q='+encodeURIComponent(query)+'&page='+page+'&page_size='+pageSize,{signal});
+  if(!response.ok)throw new ArchiveError('No se pudo consultar el archivo.');
+  const data=await response.json();
+  validateRetrievalResponse(data);return data;
 }
 export async function getEpisodes(page = 1, pageSize = 24, filter = '', order: 'asc' | 'desc' = 'desc') {
   pagination(page, pageSize);

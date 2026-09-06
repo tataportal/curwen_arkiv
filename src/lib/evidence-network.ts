@@ -1,7 +1,9 @@
-import type { ClusteredSearchResult, SearchResponse } from './types';
+import type {RetrievalEpisode,DiscussionMoment,RetrievalResponse as SearchResponse,SearchOccurrence,SpeechSentence,SpeechTimeline} from './retrieval/model';
+import {findOccurrences} from './retrieval/occurrences';
+import {normalizeQuery} from './retrieval/query';
 import { CONCEPT_TERMS } from './concept-terms';
 
-export type Evidence = { youtubeId:string; title:string; seconds:number; endSeconds?:number; text:string; precision:'cue'|'fragment'; chunkId:string };
+export type Evidence = { youtubeId:string; title:string; seconds:number; endSeconds?:number; text:string; precision:'cue'; chunkId:string; momentId:string; occurrence:SearchOccurrence; occurrences:SearchOccurrence[]; fullContext:SpeechSentence[]; longMoment:boolean };
 export type EvidenceNode = { id:string; label:string; kind:'term'|'moment'; evidence?:Evidence[] };
 export type Relationship = { id:string; source:string; target:string; label:string; evidence:Evidence[] };
 export type NetworkBranch = { nodes:EvidenceNode[]; edges:Relationship[] };
@@ -25,12 +27,23 @@ export function transcriptTerms(text:string):string[] {
   }).filter(label=>label.length>=3 && label.length<=64 && !ignored.has(normalizeTerm(label)) && !discourse.has(label));
   return [...new Set(terms)];
 }
-export function resultEvidence(result:ClusteredSearchResult):Evidence[] {
-  return result.timestamps.map(t=>({youtubeId:result.youtube_id,title:result.video_title,seconds:t.start_seconds,
-    endSeconds:t.end_seconds,text:t.text_snippet,precision:result.timestamp_precision||'cue',chunkId:t.chunk_id}));
+export function resultEvidence(episode:RetrievalEpisode,moment:DiscussionMoment,term?:string):Evidence[] {
+  let occurrences=moment.occurrences;
+  if(term){
+    const timeline={version:'cue-retrieval-1',videoId:episode.videoId,tokens:moment.evidenceTokens||[],sentences:[],rawCues:[],cleanCues:[]} satisfies SpeechTimeline;
+    occurrences=findOccurrences(timeline,normalizeQuery(term)).map(o=>{
+      const offset=moment.evidenceTokenOffset||0,tokenStart=o.tokenStart+offset,tokenEnd=o.tokenEnd+offset;
+      return {...o,tokenStart,tokenEnd,occurrenceId:episode.videoId+':'+tokenStart+':'+(tokenEnd-tokenStart)};
+    });
+  }
+  // One representative occurrence per discussion moment; every additional match remains available in context.
+  const o=occurrences[0];if(!o)return [];
+  return [{youtubeId:episode.videoId,title:episode.title,seconds:o.cue_start_seconds,endSeconds:moment.endSeconds,
+    text:moment.context.map(s=>s.text).join(' '),precision:'cue',chunkId:o.occurrenceId,momentId:moment.momentId,
+    occurrence:o,occurrences,fullContext:moment.context,longMoment:moment.endSeconds-moment.startSeconds>180}];
 }
 function uniqueEvidence(items:Evidence[]) {
-  return [...new Map(items.map(e=>[e.youtubeId+':'+e.chunkId+':'+e.seconds,e])).values()];
+  return [...new Map(items.map(e=>[e.momentId,e])).values()];
 }
 function mentionDistance(text:string,from:string,to:string) {
   const words=normalizeTerm(text).split(' ');
@@ -42,8 +55,8 @@ function mentionDistance(text:string,from:string,to:string) {
 export function buildEvidenceBranch(label:string,response:SearchResponse):NetworkBranch {
   const root=termId(label);
   const candidates=new Map<string,{label:string;concept:boolean;distance:number;evidence:Evidence[]}>();
-  for(const result of response.results) {
-    const all=resultEvidence(result);
+  for(const episode of response.episodes) for(const moment of episode.moments) {
+    const all=resultEvidence(episode,moment);
     for(const evidence of all) {
       // FTS may stem words. Only literal co-mentions become term-to-term edges.
       if(!containsTerm(evidence.text,label)) continue;
@@ -54,25 +67,25 @@ export function buildEvidenceBranch(label:string,response:SearchResponse):Networ
         if(id===root || (!concept&&(containsTerm(label,term) || containsTerm(term,label) || normalizeTerm(label).split(' ').every(word=>normalizeTerm(term).split(' ').includes(word))))) continue;
         const value=candidates.get(id)||{label:term,concept,distance:Infinity,evidence:[]};
         value.distance=Math.min(value.distance,mentionDistance(evidence.text,label,term));
-        value.evidence.push(evidence); candidates.set(id,value);
+        value.evidence.push(...resultEvidence(episode,moment,term)); candidates.set(id,value);
       }
     }
   }
   const ranked=[...candidates.entries()].map(([id,c])=>({id,...c,evidence:uniqueEvidence(c.evidence)}))
-    .filter(c=>c.concept||c.evidence.length>=2)
+    .filter(c=>c.evidence.length>0&&(c.concept||c.evidence.length>=2))
     .sort((a,b)=>Number(b.concept)-Number(a.concept)||b.evidence.length-a.evidence.length||a.distance-b.distance||a.label.localeCompare(b.label)).slice(0,8);
   const nodes:EvidenceNode[]=ranked.map(c=>({id:c.id,label:c.label,kind:'term'}));
-  const edges:Relationship[]=ranked.map(c=>({id:[root,c.id].sort().join('::'),source:root,target:c.id,label:'Mencionados en el mismo fragmento',evidence:c.evidence}));
+  const edges:Relationship[]=ranked.map(c=>({id:[root,c.id].sort().join('::'),source:root,target:c.id,label:'Mencionados en el contexto del mismo momento',evidence:c.evidence}));
   // Episode titles and timestamps belong only to edge evidence. Never fill a
   // sparse branch with documents or terms lacking a literal supporting passage.
   return {nodes,edges};
 }
 export function buildCommonPaths(from:string,to:string,response:SearchResponse):ConnectionPath[] {
-  const evidence=uniqueEvidence(response.results.flatMap(resultEvidence)).filter(e=>containsTerm(e.text,from)&&containsTerm(e.text,to));
+  const evidence=uniqueEvidence(response.episodes.flatMap(e=>e.moments.flatMap(m=>resultEvidence(e,m,to)))).filter(e=>containsTerm(e.text,from)&&containsTerm(e.text,to));
   const distinct=[...new Map(evidence.map(e=>[e.youtubeId,e])).values()].slice(0,3);
   return distinct.map(e=>{
     const middle='moment:'+e.youtubeId+':'+e.seconds;
     return {id:middle,label:e.title,nodes:[{id:termId(from),label:from,kind:'term'},{id:termId(to),label:to,kind:'term'}],
-      edges:[{id:[termId(from),termId(to)].sort().join('::'),source:termId(from),target:termId(to),label:'Mencionados en el mismo fragmento',evidence:[e]}]};
+      edges:[{id:[termId(from),termId(to)].sort().join('::'),source:termId(from),target:termId(to),label:'Mencionados en el contexto del mismo momento',evidence:[e]}]};
   });
 }
