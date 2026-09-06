@@ -4,6 +4,7 @@ import {createPortal} from 'react-dom';
 import {chronologicalMoments,conciseExcerpt,type EvidenceMoment} from '@/lib/evidence-presentation';
 import {TimestampLink,Highlight} from './ArchivePrimitives';
 import {archiveRequest,type EpisodeData} from './archive-client';
+import VolumeControl from './VolumeControl';
 import VideoPreview from './VideoPreview';
 function FullContext({item,query}:{item:EvidenceMoment;query:string}) {
   return <div className="full-moment-context" data-testid="full-context">
@@ -28,7 +29,7 @@ export function EvidenceDialog({items,label,onClose}:{items:EvidenceMoment[];lab
   const dialog=useRef<HTMLDialogElement>(null);
   useEffect(()=>{const el=dialog.current;el?.showModal();return()=>el?.close();},[]);
   return createPortal(<dialog ref={dialog} className="moments-dialog" aria-label={'Momentos: '+label} onCancel={e=>{e.preventDefault();onClose();}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-    <div className="moments-dialog-header"><span>{label} · {items.length} {items.length===1?'momento':'momentos'}</span><button autoFocus className="text-action" onClick={onClose} aria-label="Cerrar momentos">Cerrar ×</button></div>
+    <div className="moments-dialog-header"><span>{label} · {items.length} {items.length===1?'momento':'momentos'}</span><VolumeControl floating={false}/><button autoFocus className="text-action" onClick={onClose} aria-label="Cerrar momentos">Cerrar ×</button></div>
     <EvidenceList items={items} query={label}/>
   </dialog>,document.body);
 }

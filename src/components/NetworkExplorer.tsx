@@ -6,6 +6,7 @@ import {buildEvidenceBranch,buildCommonPaths,containsTerm,resultEvidence,termId,
 import {queryConcepts,searchExpression,evidenceMoments,type EvidenceMoment} from '@/lib/evidence-presentation';
 import type {RetrievalResponse as SearchResponse} from '@/lib/retrieval/model';
 import QuickEvidence,{type PreviewAnchor} from './QuickEvidence';
+import VolumeControl from './VolumeControl';
 import {EvidenceDialog} from './EvidenceList';
 type PositionedNode=EvidenceNode&{x:number;y:number;depth:number};
 type Selection={id:string;label:string;anchor:PreviewAnchor;items:EvidenceMoment[];node?:PositionedNode;pinned:boolean};
@@ -107,6 +108,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
   function leave(){if(enterTimer.current)clearTimeout(enterTimer.current);if(popup?.pinned)return;leaveTimer.current=setTimeout(()=>setPopup(null),350);}
   function close(){clearTimers();setPopup(null);skipFocus.current=true;returnFocus.current?.focus();setTimeout(()=>{skipFocus.current=false;},0);}
   return <section className={'network-explorer '+(compact?'is-receded ':'')+(popup||list?'has-evidence-preview':'')} aria-label="Mapa de conceptos" aria-busy={loading||status==='loading'} onKeyDown={e=>{if(e.key==='Escape'&&popup){e.stopPropagation();close();}}}>
+    <VolumeControl/>
     <div className="network-viewport" ref={viewport} onPointerDown={e=>{
       if((e.target as Element).closest('button,input,a'))return;
       clearTimers();setPopup(null);drag.current={x:e.clientX,y:e.clientY,dx:offset.current.x,dy:offset.current.y};e.currentTarget.setPointerCapture(e.pointerId);

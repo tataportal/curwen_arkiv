@@ -1,7 +1,7 @@
 export interface YouTubePlayer {
   destroy(): void; seekTo(seconds: number, allowSeekAhead: boolean): void;
   playVideo(): void; getCurrentTime(): number;
-  mute(): void; unMute(): void; isMuted(): boolean; pauseVideo(): void;
+  setVolume(volume:number):void; getVolume():number; mute(): void; unMute(): void; isMuted(): boolean; pauseVideo(): void;
   loadVideoById(options:{videoId:string;startSeconds:number;endSeconds:number}):void;
 }
 export interface YouTubeAPI {
