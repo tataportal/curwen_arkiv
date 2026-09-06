@@ -66,10 +66,10 @@ test('processed moments render reviewed content while preserving the matching cu
  episode.moments[0].processed={version:'semantic-v2.0',title:'Debate sobre la biblioteca',summary:'Se comenta una propuesta para la biblioteca.',excerpt:'Archive Subject meets Central Library.',eligibility:'medium',primaryFamily:'SOCIEDAD',topics:['Bibliotecas','Acceso a la cultura']};
  const payload=response([episode]);validateRetrievalResponse(payload);
  const html=renderToStaticMarkup(<SearchResults episodes={[episode]} query="Archive"/>);
- assert(html.includes('Debate sobre la biblioteca'));assert(html.includes('Central Library'));
+ assert(html.includes('Debate sobre la biblioteca'));assert(html.includes('Se comenta una propuesta'));
  assert(html.includes('Test episode'));assert(html.includes('Bibliotecas · Acceso a la cultura'));
  assert(html.includes('data-cue-start-seconds="12.34"'));assert(html.includes('t=9s'));
- assert(!html.includes('Se comenta una propuesta'));assert(!html.includes('full-moment-context'));
+ assert(!html.includes('Extracto de transcripción'));assert(!html.includes('full-moment-context'));
 });
 test('low-quality processed content requires a neutral title and literal excerpt without a generated summary',()=>{
  const episode=fixture();
@@ -99,4 +99,16 @@ test('moment excerpt recovers preceding cue text while retaining original eviden
  assert.equal(evidenceStartSeconds(12.34),9);
  assert.equal(momentExcerpt(item,'Archive'),'Contexto previo. Archive Subject.');
  assert.equal(item.occurrence.cue_start_seconds,12.34);
+});
+
+test('one header per video, chronological moments, and explicit transcript fallback',()=>{
+ const episode=fixture();episode.publishedAt='2026-09-05T12:00:00Z';
+ episode.moments.push({...episode.moments[0],momentId:'second',occurrences:[{...episode.moments[0].occurrences[0],occurrenceId:'second-occurrence',cue_start_seconds:30}]});
+ const html=renderToStaticMarkup(<SearchResults episodes={[episode]} query="Archive"/>);
+ assert.equal((html.match(/class="moment-source"/g)||[]).length,1);
+ assert.equal((html.match(/class="compact-moment"/g)||[]).length,2);
+ assert.equal((html.match(/Extracto de transcripción/g)||[]).length,2);
+ assert(html.toLowerCase().includes('datetime="2026-09-05t12:00:00z"'));
+ assert(!html.includes('Juegos Panamericanos'));
+ assert(html.indexOf('t=9s')<html.indexOf('t=27s'));
 });

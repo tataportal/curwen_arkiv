@@ -1,5 +1,4 @@
-import {containsTerm,type Evidence} from './evidence-network';
-import {CONCEPT_TERMS} from './concept-terms';
+import type {Evidence} from './evidence-network';
 import {evidenceStartSeconds} from './utils';
 import type {RetrievalEpisode} from './retrieval/model';
 export interface EvidenceMoment extends Evidence { id:string; context:Evidence[] }
@@ -33,7 +32,7 @@ export function evidenceMoments(evidence:Evidence[]):EvidenceMoment[] {
 export function resultMoments(episodes:RetrievalEpisode[]):EvidenceMoment[] {
   return episodes.flatMap(e=>e.moments.map(m=>{
     const occurrence=m.occurrences[0];
-    return {id:m.momentId,momentId:m.momentId,youtubeId:e.videoId,title:e.title,seconds:occurrence.cue_start_seconds,
+    return {id:m.momentId,momentId:m.momentId,youtubeId:e.videoId,title:e.title,publishedAt:e.publishedAt,seconds:occurrence.cue_start_seconds,
       endSeconds:m.endSeconds,text:m.excerpt,precision:'cue' as const,chunkId:occurrence.occurrenceId,occurrence,
       evidenceTokens:m.evidenceTokens,processed:m.processed,context:[],fullContext:m.context,occurrences:m.occurrences,longMoment:m.endSeconds-m.startSeconds>180};
   }));
@@ -44,12 +43,9 @@ export function chronologicalMoments(items:EvidenceMoment[]) {
   return [...groups.values()].flatMap(group=>group.sort((a,b)=>a.seconds-b.seconds));
 }
 
-/** Literal topics from the local excerpt, not inferred claims about the episode. */
-export function momentTopic(item:EvidenceMoment,query:string) {
-  if(item.processed?.title)return item.processed.title;
-  const text=momentExcerpt(item,query);
-  const topics=['Juegos Panamericanos',...CONCEPT_TERMS].filter(term=>containsTerm(text,term)).slice(0,2);
-  return 'Sobre '+(topics.length?topics.join(' y '):queryConcepts(query).join(' y ')||item.occurrence.matchedText);
+/** Titles are supplied by validated processed data; fallback names only the literal match. */
+export function momentTopic(item:EvidenceMoment) {
+  return item.processed?.title??('Mención de '+item.occurrence.matchedText);
 }
 export function momentExcerpt(item:EvidenceMoment,query:string) {
   const start=evidenceStartSeconds(item.occurrence.cue_start_seconds);

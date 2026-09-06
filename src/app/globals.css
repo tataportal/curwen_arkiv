@@ -294,3 +294,11 @@ body:has(.moments-dialog[open]) .volume-control.is-floating { visibility:hidden;
 .has-evidence-preview .ambient-backdrop,.network-explorer:focus-within .ambient-backdrop,.network-explorer:active .ambient-backdrop,.network-explorer:has(.network-node:hover) .ambient-backdrop,.is-receded .ambient-backdrop,body:has([data-preview-state="playing"]) .ambient-backdrop {animation-play-state:paused}
 .ambient-toggle {position:fixed;left:62px;bottom:max(24px,env(safe-area-inset-bottom));z-index:59;font-size:10px;color:var(--secondary)}
 @media(prefers-reduced-motion:reduce) {.ambient-backdrop {animation:none!important;opacity:0}}
+
+.evidence-episode {border-top:1px solid var(--border,#292c28);padding-top:28px;margin-top:28px}
+.evidence-episode .moment-source {margin-bottom:8px}
+.evidence-episode-header time {display:block;font-size:10px;margin-top:4px}
+.evidence-episode .compact-moment:first-of-type {border-top:0}
+.transcription-label {margin:14px 0 -8px 106px;font-size:10px;color:var(--secondary)}
+.compact-excerpt.is-summary {display:block;overflow:visible}
+@media(max-width:640px) {.transcription-label {margin-left:0}}
