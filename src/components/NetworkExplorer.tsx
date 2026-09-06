@@ -6,6 +6,7 @@ import {buildEvidenceBranch,buildCommonPaths,containsTerm,resultEvidence,termId,
 import {queryConcepts,searchExpression,evidenceMoments,type EvidenceMoment} from '@/lib/evidence-presentation';
 import type {RetrievalResponse as SearchResponse} from '@/lib/retrieval/model';
 import QuickEvidence,{type PreviewAnchor} from './QuickEvidence';
+import AmbientBackdrop from './AmbientBackdrop';
 import VolumeControl from './VolumeControl';
 import {PREVIEW_LEAVE_DELAY_MS} from '@/lib/preview-buffer';
 import {EvidenceDialog} from './EvidenceList';
@@ -111,12 +112,12 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
   function leave(){if(enterTimer.current)clearTimeout(enterTimer.current);enterTimer.current=null;scheduleClose();}
   function close(){clearTimers();setPopup(null);skipFocus.current=true;returnFocus.current?.focus();setTimeout(()=>{skipFocus.current=false;},0);}
   return <section className={'network-explorer '+(compact?'is-receded ':'')+(popup||list?'has-evidence-preview':'')} aria-label="Mapa de conceptos" aria-busy={loading||status==='loading'} onKeyDown={e=>{if(e.key==='Escape'&&popup){e.stopPropagation();close();}}}>
-    <VolumeControl/>
+    <AmbientBackdrop/><VolumeControl/>
     <div className="network-viewport" ref={viewport} onPointerDown={e=>{
       if((e.target as Element).closest('button,input,a')||(e.pointerType==='touch'&&onMoments))return;
       clearTimers();setPopup(null);drag.current={x:e.clientX,y:e.clientY,dx:offset.current.x,dy:offset.current.y};e.currentTarget.setPointerCapture(e.pointerId);
     }} onPointerMove={e=>{if(!drag.current)return;offset.current={x:drag.current.dx+e.clientX-drag.current.x,y:drag.current.dy+e.clientY-drag.current.y};transform();}} onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}}>
-      <div className="network-plane" ref={plane}><div className="network-drift">
+      <div className="network-plane" ref={plane}>
         <svg className="network-edges" viewBox="-600 -400 1200 800" aria-hidden="true">{edges.map(e=>{const a=visibleNodes.find(n=>n.id===e.source),b=visibleNodes.find(n=>n.id===e.target);return a&&b?<line key={e.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y}/>:null;})}</svg>
         {edges.map(e=>{const a=visibleNodes.find(n=>n.id===e.source),b=visibleNodes.find(n=>n.id===e.target);return a&&b?<button key={e.id} className="edge-target" style={{left:'calc(50% + '+(a.x+b.x)/2+'px)',top:'calc(50% + '+(a.y+b.y)/2+'px)'}} aria-label={'Ver evidencia entre '+a.label+' y '+b.label}
           onPointerEnter={event=>{if(event.pointerType!=='touch')show(event.currentTarget,undefined,e,false,true);}} onPointerLeave={leave}
@@ -126,7 +127,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
           onPointerEnter={event=>{if(event.pointerType!=='touch')show(event.currentTarget,node,undefined,false,true);}} onPointerLeave={leave}
           onFocus={event=>{if(!skipFocus.current)show(event.currentTarget,node);}} onClick={event=>{if(window.matchMedia("(hover: none)").matches&&popup?.node?.id!==node.id){show(event.currentTarget,node,undefined,true);}else void expand(node);}}>
           <span className="node-point" aria-hidden="true"/><span className="node-label">{node.label}</span></button>)}
-      </div></div>
+      </div>
     </div>
     {nodes.length>1&&<div className="network-controls"><button className="icon-button" aria-label="Alejar mapa" disabled={zoom<=.25} onClick={()=>{close();setZoom(z=>Math.max(.25,z-.15));}}><Minus size={15}/></button><button className="icon-button" aria-label="Acercar mapa" disabled={zoom>=1.6} onClick={()=>{close();setZoom(z=>Math.min(1.6,z+.15));}}><Plus size={15}/></button><button className="icon-button" aria-label="Centrar mapa" onClick={()=>{close();fit();}}><Maximize2 size={14}/></button></div>}
     {status==='error'&&<p className="network-status">No se pudo consultar esta rama. Vuelve a buscar.</p>}
