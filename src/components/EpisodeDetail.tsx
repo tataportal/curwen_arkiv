@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { archiveRequest, type EpisodeData } from './archive-client';
-import { ArchiveError, Highlight, LoadingLine, TimestampLink } from './ArchivePrimitives';
+import { ArchiveError, Highlight, LoadingLine } from './ArchivePrimitives';
 import { buildYouTubeTimestampUrl, formatDate, formatTimestamp } from '@/lib/utils';
 export default function EpisodeDetail({ youtubeId }: { youtubeId: string }) {
   const [episode, setEpisode] = useState<EpisodeData | null>(null);
@@ -45,7 +45,7 @@ export default function EpisodeDetail({ youtubeId }: { youtubeId: string }) {
       </div>
       <section aria-label="Transcripción" className="transcript">
         {!filtered.length ? <div className="quiet-state"><p>{query ? 'No hay menciones de “' + query + '”.' : 'La transcripción aún no está disponible.'}</p></div> : filtered.slice(0, visibleLimit).map(row => <div key={row.id} className={'transcript-row ' + (row.id === rows[targetIndex]?.id ? 'target-row' : '')} ref={row.id === rows[targetIndex]?.id ? initialRow : undefined}>
-          <TimestampLink youtubeId={youtubeId} seconds={row.start_seconds} /><p><Highlight text={row.text} query={query} /></p>
+          <p><Highlight text={row.text} query={query} /></p>
         </div>)}
         {filtered.length > visibleLimit && <button className="text-action more-transcript" onClick={() => setLimit(visibleLimit + 160)}>Continuar transcripción ↓</button>}
       </section>
