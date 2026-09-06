@@ -12,9 +12,9 @@ Fragment-level records expose the source fragment's start time. They are explici
 
 ## Evidence network
 
-Terms are literal capitalized phrases/acronyms found in returned transcript excerpts, with repeated evidence required for a term branch. They are not a curated, canonical entity catalog. Edges mean co-mention in the same fragment; they do not assert affiliation, guilt, support, financing, or another semantic political relationship.
+Neighbors are transcript terms only. Lowercase concepts are matched against the explicit lexical vocabulary in `src/lib/concept-terms.ts`; a concept requires a literal co-mention with the query in source text. This vocabulary is a coverage limit, not a list of predefined relationships. Capitalized phrases/acronyms remain candidates when repeated in at least two distinct evidence records. Concepts rank before those name candidates, then by supporting records and word distance from the query. Edges mean co-mention in the same fragment; they do not assert affiliation, guilt, support, financing, or another semantic political relationship.
 
-Nodes expand with another real search. Episode nodes open evidence. A second term searches for shared fragments and exposes up to three source-backed paths through those fragments. Each path requires both literal terms in the same text. No transitive political relationships are inferred.
+Nodes expand with another real search. Episodes never fill sparse branches: their titles and timestamps appear only as supporting evidence. Without supported neighbors, the branch remains empty and says so. A second term searches for shared fragments and exposes up to three source-backed paths through those fragments. Each path requires both literal terms in the same text. No transitive political relationships are inferred. Concept discovery is lexical and deliberately limited, not semantic extraction or embeddings.
 
 The network represents the currently retrieved moments, not an exhaustive entity graph for the entire corpus. Initial expansion is bounded, history remains visible, the map can be moved/zoomed, and the node count is capped at 40. Network code is loaded after search.
 

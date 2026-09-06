@@ -171,7 +171,6 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
           aria-pressed={node.id===selected} aria-label={node.label}
           onClick={event=>{returnFocus.current=event.currentTarget;void expand(node);}}>
           <span className="node-point" aria-hidden="true"/><span className="node-label">{node.label}</span>
-          {node.kind==='episode'&&<small>episodio ↗</small>}
         </button>)}
       </div>
     </div>
@@ -181,6 +180,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
       <button className="icon-button" aria-label="Centrar mapa" onClick={fit}><Maximize2 size={14}/></button>
     </div>}
     {response===undefined&&status==='error'&&!selectedNode&&<p className="network-status">No se pudo consultar la red. Vuelve a buscar.</p>}
+    {status==='empty'&&!selectedNode&&<p className="network-status">Sin conceptos relacionados con evidencia suficiente.</p>}
     {(selectedNode||edge)&&<aside ref={inspector} className="network-inspector reveal" aria-label="Evidencia de la conexión" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();close();}}}>
       <button className="inspector-close icon-button" aria-label="Cerrar evidencia" onClick={close}><X size={16}/></button>
       <h2>{edge?nodes.find(n=>n.id===edge.source)?.label+' · '+nodes.find(n=>n.id===edge.target)?.label:selectedNode?.label}</h2>

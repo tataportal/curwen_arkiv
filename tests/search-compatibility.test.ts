@@ -57,3 +57,25 @@ test('paths require both terms in the same evidence fragment, not merely the sam
 test('literal boundaries prevent partial surname or accent errors',()=>{
  assert(containsTerm('Interviene José Pérez.','jose perez'));assert(!containsTerm('Interviene Josefina.','jose'));
 });
+test('sparse results never turn episode titles into neighboring concepts',()=>{
+ const branch=buildEvidenceBranch('Vacunas',response([moment('1','Aquí hablamos de vacunas.') ]));
+ assert.deepEqual(branch,{nodes:[],edges:[]});
+});
+test('lowercase concepts require literal query co-mention and retain source evidence',()=>{
+ const r=response([moment('1','La compra de vacunas durante la pandemia.'),moment('2','El ensayo clínico de vacunas usa un placebo.')]);
+ const branch=buildEvidenceBranch('Vacunas',r);
+ assert(branch.nodes.some(n=>n.label==='compra de vacunas'));
+ assert(branch.nodes.some(n=>n.label==='ensayo clínico'));
+ assert(branch.nodes.every(n=>n.kind==='term'));
+ for(const edge of branch.edges) for(const evidence of edge.evidence){
+   const label=branch.nodes.find(n=>n.id===edge.target)!.label;
+   assert(containsTerm(evidence.text,'Vacunas'));assert(containsTerm(evidence.text,label));
+   assert(evidence.youtubeId);assert(evidence.title);assert(evidence.seconds>=0);
+ }
+ assert(!buildEvidenceBranch('Vacunas',response([moment('1','La pandemia requiere un ensayo clínico.')])).nodes.length);
+});
+test('concept vocabulary never implies a causal relationship or extracts from a title',()=>{
+ const r=response([{...moment('1','El tema son las vacunas.'),video_title:'Pandemia y ensayo clínico'}]);
+ assert.deepEqual(buildEvidenceBranch('Vacunas',r),{nodes:[],edges:[]});
+ assert(!buildEvidenceBranch('Vacunas',response([moment('1','Vacunas y pandemias.')])).nodes.some(n=>n.label==='pandemia'));
+});

@@ -1,7 +1,8 @@
 import type { ClusteredSearchResult, SearchResponse } from './types';
+import { CONCEPT_TERMS } from './concept-terms';
 
 export type Evidence = { youtubeId:string; title:string; seconds:number; text:string; precision:'cue'|'fragment'; chunkId:string };
-export type EvidenceNode = { id:string; label:string; kind:'term'|'episode'|'moment'; evidence?:Evidence[] };
+export type EvidenceNode = { id:string; label:string; kind:'term'|'moment'; evidence?:Evidence[] };
 export type Relationship = { id:string; source:string; target:string; label:string; evidence:Evidence[] };
 export type NetworkBranch = { nodes:EvidenceNode[]; edges:Relationship[] };
 export type ConnectionPath = { id:string; label:string; nodes:EvidenceNode[]; edges:Relationship[] };
@@ -31,39 +32,39 @@ export function resultEvidence(result:ClusteredSearchResult):Evidence[] {
 function uniqueEvidence(items:Evidence[]) {
   return [...new Map(items.map(e=>[e.youtubeId+':'+e.chunkId+':'+e.seconds,e])).values()];
 }
+function mentionDistance(text:string,from:string,to:string) {
+  const words=normalizeTerm(text).split(' ');
+  const a=normalizeTerm(from).split(' '),b=normalizeTerm(to).split(' ');
+  const positions=(term:string[])=>words.flatMap((_,i)=>term.every((word,j)=>words[i+j]===word)?[i]:[]);
+  const starts=positions(a),ends=positions(b);
+  return Math.min(...starts.flatMap(i=>ends.map(j=>Math.max(0,j-i-a.length,i-j-b.length))));
+}
 export function buildEvidenceBranch(label:string,response:SearchResponse):NetworkBranch {
   const root=termId(label);
-  const candidates=new Map<string,{label:string;evidence:Evidence[]}>();
-  const episodes=new Map<string,Evidence[]>();
+  const candidates=new Map<string,{label:string;concept:boolean;distance:number;evidence:Evidence[]}>();
   for(const result of response.results) {
     const all=resultEvidence(result);
-    episodes.set(result.youtube_id,[...(episodes.get(result.youtube_id)||[]),...all]);
     for(const evidence of all) {
       // FTS may stem words. Only literal co-mentions become term-to-term edges.
       if(!containsTerm(evidence.text,label)) continue;
-      for(const term of transcriptTerms(evidence.text)) {
+      const concepts=CONCEPT_TERMS.filter(term=>containsTerm(evidence.text,term));
+      for(const term of [...concepts,...transcriptTerms(evidence.text)]) {
         const id=termId(term);
-        if(id===root || containsTerm(label,term) || containsTerm(term,label) || normalizeTerm(label).split(' ').every(word=>normalizeTerm(term).split(' ').includes(word))) continue;
-        const value=candidates.get(id)||{label:term,evidence:[]};
+        const concept=concepts.some(c=>termId(c)===id);
+        if(id===root || (!concept&&(containsTerm(label,term) || containsTerm(term,label) || normalizeTerm(label).split(' ').every(word=>normalizeTerm(term).split(' ').includes(word))))) continue;
+        const value=candidates.get(id)||{label:term,concept,distance:Infinity,evidence:[]};
+        value.distance=Math.min(value.distance,mentionDistance(evidence.text,label,term));
         value.evidence.push(evidence); candidates.set(id,value);
       }
     }
   }
   const ranked=[...candidates.entries()].map(([id,c])=>({id,...c,evidence:uniqueEvidence(c.evidence)}))
-    .filter(c=>c.evidence.length>=2).sort((a,b)=>b.evidence.length-a.evidence.length||a.label.localeCompare(b.label)).slice(0,8);
+    .filter(c=>c.concept||c.evidence.length>=2)
+    .sort((a,b)=>Number(b.concept)-Number(a.concept)||b.evidence.length-a.evidence.length||a.distance-b.distance||a.label.localeCompare(b.label)).slice(0,8);
   const nodes:EvidenceNode[]=ranked.map(c=>({id:c.id,label:c.label,kind:'term'}));
   const edges:Relationship[]=ranked.map(c=>({id:[root,c.id].sort().join('::'),source:root,target:c.id,label:'Mencionados en el mismo fragmento',evidence:c.evidence}));
-  // Episodes are evidence nodes, never represented as political relationships.
-  // They also make every successful search explorable when no repeated named
-  // phrase is present in the retrieved text.
-  const episodeCount=ranked.length>=3?2:Math.max(3,6-ranked.length);
-  for(const [id,items] of [...episodes.entries()].slice(0,episodeCount)) {
-    const evidence=uniqueEvidence(items);
-    if(!evidence.length) continue;
-    const nodeId='episode:'+id;
-    nodes.push({id:nodeId,label:evidence[0].title,kind:'episode',evidence});
-    edges.push({id:root+'::'+nodeId,source:root,target:nodeId,label:'Mención en este episodio',evidence});
-  }
+  // Episode titles and timestamps belong only to edge evidence. Never fill a
+  // sparse branch with documents or terms lacking a literal supporting passage.
   return {nodes,edges};
 }
 export function buildCommonPaths(from:string,to:string,response:SearchResponse):ConnectionPath[] {
