@@ -302,3 +302,8 @@ body:has(.moments-dialog[open]) .volume-control.is-floating { visibility:hidden;
 .transcription-label {margin:14px 0 -8px 106px;font-size:10px;color:var(--secondary)}
 .compact-excerpt.is-summary {display:block;overflow:visible}
 @media(max-width:640px) {.transcription-label {margin-left:0}}
+@media(max-width:640px) {
+ .evidence-episode .compact-moment-heading {grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:12px}
+ .evidence-episode .compact-moment-heading h3 {grid-column:1;grid-row:1}
+ .evidence-episode .compact-moment-heading .timestamp {grid-column:2;grid-row:1}
+}
