@@ -33,7 +33,13 @@ export interface SearchOccurrence {
   matchType: 'phrase' | 'proximity';
   tokenStart: number; tokenEnd: number;
 }
+/** Reviewed presentation only; timestamp identity remains on the occurrence. */
+export interface ProcessedMomentView {
+  version: 'semantic-v2.0'; title: string; summary: string | null; excerpt: string;
+  eligibility: 'high' | 'medium' | 'low'; primaryFamily: string; topics: string[];
+}
 export interface DiscussionMoment {
+  processed?: ProcessedMomentView;
   momentId: string; videoId: string; startSeconds: number; endSeconds: number;
   lastOccurrenceSeconds: number; occurrenceCount: number; matchingCueCount: number;
   excerpt: string; excerptStartSeconds: number; excerptCueIds: string[];

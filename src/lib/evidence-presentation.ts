@@ -33,7 +33,7 @@ export function resultMoments(episodes:RetrievalEpisode[]):EvidenceMoment[] {
     const occurrence=m.occurrences[0];
     return {id:m.momentId,momentId:m.momentId,youtubeId:e.videoId,title:e.title,seconds:occurrence.cue_start_seconds,
       endSeconds:m.endSeconds,text:m.excerpt,precision:'cue' as const,chunkId:occurrence.occurrenceId,occurrence,
-      context:[],fullContext:m.context,occurrences:m.occurrences,longMoment:m.endSeconds-m.startSeconds>180};
+      processed:m.processed,context:[],fullContext:m.context,occurrences:m.occurrences,longMoment:m.endSeconds-m.startSeconds>180};
   }));
 }
 export function chronologicalMoments(items:EvidenceMoment[]) {

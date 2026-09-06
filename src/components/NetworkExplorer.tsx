@@ -11,7 +11,7 @@ import {PREVIEW_LEAVE_DELAY_MS} from '@/lib/preview-buffer';
 import {EvidenceDialog} from './EvidenceList';
 type PositionedNode=EvidenceNode&{x:number;y:number;depth:number};
 type Selection={id:string;label:string;anchor:PreviewAnchor;items:EvidenceMoment[];node?:PositionedNode;pinned:boolean};
-export default function NetworkExplorer({query,compact=false,response,loading=false}:{query:string;compact?:boolean;response?:SearchResponse|null;loading?:boolean}) {
+export default function NetworkExplorer({query,compact=false,response,loading=false,onMoments}:{query:string;compact?:boolean;response?:SearchResponse|null;loading?:boolean;onMoments?:(items:EvidenceMoment[],label:string)=>void}) {
   const seeds=queryConcepts(query);
   const initial:PositionedNode[]=seeds.map((label,i)=>({id:termId(label),label,kind:'term',x:seeds.length>1?(i?180:-180):0,y:0,depth:0}));
   const [nodes,setNodes]=useState<PositionedNode[]>(initial),[edges,setEdges]=useState<Relationship[]>([]);
@@ -113,7 +113,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
   return <section className={'network-explorer '+(compact?'is-receded ':'')+(popup||list?'has-evidence-preview':'')} aria-label="Mapa de conceptos" aria-busy={loading||status==='loading'} onKeyDown={e=>{if(e.key==='Escape'&&popup){e.stopPropagation();close();}}}>
     <VolumeControl/>
     <div className="network-viewport" ref={viewport} onPointerDown={e=>{
-      if((e.target as Element).closest('button,input,a'))return;
+      if((e.target as Element).closest('button,input,a')||(e.pointerType==='touch'&&onMoments))return;
       clearTimers();setPopup(null);drag.current={x:e.clientX,y:e.clientY,dx:offset.current.x,dy:offset.current.y};e.currentTarget.setPointerCapture(e.pointerId);
     }} onPointerMove={e=>{if(!drag.current)return;offset.current={x:drag.current.dx+e.clientX-drag.current.x,y:drag.current.dy+e.clientY-drag.current.y};transform();}} onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}}>
       <div className="network-plane" ref={plane}>
@@ -131,7 +131,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
     {nodes.length>1&&<div className="network-controls"><button className="icon-button" aria-label="Alejar mapa" disabled={zoom<=.25} onClick={()=>{close();setZoom(z=>Math.max(.25,z-.15));}}><Minus size={15}/></button><button className="icon-button" aria-label="Acercar mapa" disabled={zoom>=1.6} onClick={()=>{close();setZoom(z=>Math.min(1.6,z+.15));}}><Plus size={15}/></button><button className="icon-button" aria-label="Centrar mapa" onClick={()=>{close();fit();}}><Maximize2 size={14}/></button></div>}
     {status==='error'&&<p className="network-status">No se pudo consultar esta rama. Vuelve a buscar.</p>}
     {status==='empty'&&!popup&&<p className="network-status">Sin conceptos relacionados con evidencia suficiente.</p>}
-    {popup&&!list&&!compact&&<QuickEvidence pinned={popup.pinned} anchor={popup.anchor} label={popup.label} items={popup.items} onClose={close} onEnter={clearTimers} onLeave={scheduleClose} onMoments={()=>{clearTimers();setList(popup);}} onExplore={popup.node?()=>void expand(popup.node!):undefined}/>}
+    {popup&&!list&&!compact&&<QuickEvidence pinned={popup.pinned} anchor={popup.anchor} label={popup.label} items={popup.items} onClose={close} onEnter={clearTimers} onLeave={scheduleClose} onMoments={()=>{clearTimers();if(onMoments){onMoments(popup.items,popup.label);setPopup(null);}else setList(popup);}} onExplore={popup.node?()=>void expand(popup.node!):undefined}/>}
     {list&&!compact&&<EvidenceDialog items={list.items} label={list.label} onClose={()=>{setList(null);close();}}/>}
   </section>;
 }

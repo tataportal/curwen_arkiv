@@ -181,22 +181,35 @@ main { position:relative; min-height:100dvh; outline:none; }
 }
 .network-node { transform:translate(-50%,-2px); padding:0 8px; min-height:44px; }
 
-/* Keep the existing graph presentation within one viewport. */
-.search-experience:has(.home-network) { height:100dvh; overflow:hidden; }
-.search-experience .home-network { position:fixed; inset:0; height:100dvh; }
+/* The map occupies one complete screen; reading starts on the next screen. */
+.search-experience { padding:0; }
+.search-hero { position:relative; height:100dvh; min-height:420px; overflow:hidden; }
+.search-hero .search-anchor { position:absolute; top:32px; left:24px; right:24px; width:auto; max-width:580px; }
+.search-hero .home-network { position:absolute; inset:0; height:100%; }
 .home-network .network-explorer { min-height:0; }
+.search-hero .network-viewport { touch-action:pan-y; }
 .home-network .network-viewport { position:absolute; inset:120px 24px 76px; width:auto; height:auto; }
 .home-network .network-controls { bottom:max(20px,env(safe-area-inset-bottom)); right:24px; }
-.search-experience:has(.home-network) .search-content { position:fixed; inset:auto 24px max(20px,env(safe-area-inset-bottom)); margin:0 auto; padding:0; }
-.search-experience:has(.home-network):not(.show-results) .results-summary { margin:0; justify-content:center; }
-.search-experience:has(.home-network):not(.show-results) .context-nav { display:none; }
-.search-experience:has(.home-network).show-results .search-content { inset:120px 24px 20px; overflow-y:auto; overscroll-behavior:contain; padding:0 24px 24px; background:rgba(10,11,11,.98); }
-.search-experience:has(.home-network).show-results .results-summary { position:sticky; top:0; z-index:2; margin:0; padding:16px 0; background:var(--bg); }
+.hero-feedback { position:absolute; left:80px; right:140px; bottom:20px; z-index:3; text-align:center; font-size:12px; color:var(--secondary); }
+.hero-feedback .quiet-state { padding:0; }
+.hero-feedback .quiet-state .text-action { margin:0; }
+.moments-page { position:relative; z-index:2; min-height:100dvh; max-width:900px; margin:auto; padding:72px 32px 96px; background:var(--bg); scroll-margin-top:0; outline:none; }
+.moments-page-header { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:52px; }
+.moments-eyebrow { color:var(--secondary); font-size:12px; margin-bottom:14px; }
+.moments-page-header h2 { font-size:clamp(28px,4vw,42px); letter-spacing:-.025em; line-height:1.2; }
+.moments-count { margin-top:16px; color:var(--secondary); font-size:12px; }
+.moments-page .compact-moment { padding:30px 0; }
+.moments-page .compact-moment-heading h3 { color:var(--secondary); }
+.moments-page .compact-excerpt { font-size:16px; line-height:1.7; max-width:620px; }
 @media(max-width:640px) {
-  .home-network .network-viewport { inset:100px 12px 94px; }
-  .home-network .network-controls { right:12px; bottom:max(16px,env(safe-area-inset-bottom)); }
-  .search-experience:has(.home-network) .search-content { left:16px; right:132px; max-width:none; }
-  .search-experience:has(.home-network).show-results .search-content { inset:100px 12px 12px; padding:0 16px 20px; }
+ .search-hero .search-anchor { top:20px; left:24px; right:24px; }
+ .home-network .network-viewport { inset:100px 12px 94px; }
+ .home-network .network-controls { right:12px; bottom:max(16px,env(safe-area-inset-bottom)); }
+ .hero-feedback { left:64px; right:128px; bottom:22px; }
+ .moments-page { padding:44px 24px 80px; }
+ .moments-page-header { margin-bottom:32px; gap:16px; }
+ .moments-page-header>.text-action { max-width:100px; text-align:right; }
+ .moments-page .compact-excerpt { font-size:15px; }
 }
 
 /* Four disclosure levels: concepts, preview, moments, requested context. */
@@ -256,3 +269,12 @@ main { position:relative; min-height:100dvh; outline:none; }
 .volume-control.is-inline .volume-panel { top:48px; bottom:auto; left:auto; right:0; }
 body:has(.moments-dialog[open]) .volume-control.is-floating { visibility:hidden; }
 @media(max-width:640px) { .volume-control.is-floating { left:8px; } .moments-dialog-header { gap:8px; } }
+
+/* Processed discussion content sits below the full-height concept map. */
+.moments-page .compact-moment[data-processed] .compact-moment-heading h3 { color:var(--text); font-size:20px; line-height:1.45; }
+.moment-episode { margin:8px 0 0 106px; color:var(--secondary); font-size:11px; line-height:1.6; }
+.moment-topics { margin:12px 0 0 106px; color:var(--secondary); font-size:11px; line-height:1.6; }
+@media(max-width:640px) {
+ .moments-page .compact-moment[data-processed] .compact-moment-heading h3 { font-size:18px; }
+ .moment-episode,.moment-topics { margin-left:0; }
+}

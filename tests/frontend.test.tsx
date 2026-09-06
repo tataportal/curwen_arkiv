@@ -6,7 +6,8 @@ import SearchExperience from '../src/components/SearchExperience';
 import SearchResults from '../src/components/SearchResults';
 import NetworkExplorer from '../src/components/NetworkExplorer';
 import { Highlight, TimestampLink } from '../src/components/ArchivePrimitives';
-import {fixture} from './retrieval-fixture';
+import {fixture,response} from './retrieval-fixture';
+import {validateRetrievalResponse} from '../src/lib/retrieval-contract';
 import {resultMoments} from '../src/lib/evidence-presentation';
 
 test('initial home contains only the search instrument and accessible hidden text', () => {
@@ -57,4 +58,25 @@ test('query pairs and short excerpts retain source words, not invented connectio
  const e=resultMoments([fixture()])[0];
  const items=evidenceMoments([e,e,{...e,momentId:'two',seconds:42}]);
  assert.equal(items.length,2);assert.deepEqual(chronologicalMoments(items).map(i=>i.seconds),[12.34,42]);
+});
+
+test('processed moments render reviewed content while preserving the matching cue timestamp',()=>{
+ const episode=fixture();
+ episode.moments[0].startSeconds=0;
+ episode.moments[0].processed={version:'semantic-v2.0',title:'Debate sobre la biblioteca',summary:'Se comenta una propuesta para la biblioteca.',excerpt:'Archive Subject meets Central Library.',eligibility:'medium',primaryFamily:'SOCIEDAD',topics:['Bibliotecas','Acceso a la cultura']};
+ const payload=response([episode]);validateRetrievalResponse(payload);
+ const html=renderToStaticMarkup(<SearchResults episodes={[episode]} query="Archive"/>);
+ assert(html.includes('Debate sobre la biblioteca'));assert(html.includes('Se comenta una propuesta'));
+ assert(html.includes('Test episode'));assert(html.includes('Bibliotecas · Acceso a la cultura'));
+ assert(html.includes('data-cue-start-seconds="12.34"'));assert(html.includes('t=12.34'));
+ assert(!html.includes('Archive Subject meets'));assert(!html.includes('full-moment-context'));
+});
+test('low-quality processed content requires a neutral title and literal excerpt without a generated summary',()=>{
+ const episode=fixture();
+ episode.moments[0].processed={version:'semantic-v2.0',title:'Mención de Archive Subject',summary:null,excerpt:'Archive Subject meets Central Library.',eligibility:'low',primaryFamily:'SOCIEDAD',topics:[]};
+ validateRetrievalResponse(response([episode]));
+ const html=renderToStaticMarkup(<SearchResults episodes={[episode]} query="Archive"/>);
+ assert(html.includes('Mención de Archive Subject'));assert(html.includes('Central Library'));
+ episode.moments[0].processed.summary='Unsupported polished summary';
+ assert.throws(()=>validateRetrievalResponse(response([episode])),/semántica/);
 });

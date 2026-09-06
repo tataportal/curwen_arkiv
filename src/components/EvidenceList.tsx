@@ -3,7 +3,6 @@ import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {chronologicalMoments,conciseExcerpt,type EvidenceMoment} from '@/lib/evidence-presentation';
 import {TimestampLink,Highlight} from './ArchivePrimitives';
-import {archiveRequest,type EpisodeData} from './archive-client';
 import VolumeControl from './VolumeControl';
 import VideoPreview from './VideoPreview';
 function FullContext({item,query}:{item:EvidenceMoment;query:string}) {
@@ -14,14 +13,16 @@ function FullContext({item,query}:{item:EvidenceMoment;query:string}) {
 }
 export function EvidenceList({items,query}:{items:EvidenceMoment[];query:string}) {
   const [preview,setPreview]=useState<string|null>(null),[context,setContext]=useState<string|null>(null);
-  return <div className="compact-evidence-list">{chronologicalMoments(items).map(item=><article className="compact-moment" key={item.id} data-moment-id={item.id} data-occurrence-id={item.occurrence.occurrenceId} data-cue-start-seconds={item.occurrence.cue_start_seconds}>
-    <div className="compact-moment-heading"><TimestampLink youtubeId={item.youtubeId} seconds={item.occurrence.cue_start_seconds}/><h3>{item.title}</h3></div>
-    {context!==item.id&&<p className="compact-excerpt"><Highlight text={conciseExcerpt(item.text,query)} query={query}/></p>}
+  return <div className="compact-evidence-list">{chronologicalMoments(items).map(item=><article className="compact-moment" key={item.id} data-moment-id={item.id} data-occurrence-id={item.occurrence.occurrenceId} data-cue-start-seconds={item.occurrence.cue_start_seconds} data-processed={item.processed?.version}>
+    <div className="compact-moment-heading"><TimestampLink youtubeId={item.youtubeId} seconds={item.occurrence.cue_start_seconds}/><h3>{item.processed?.title??item.title}</h3></div>
+    {item.processed&&<p className="moment-episode">{item.title}</p>}
+    {context!==item.id&&<p className="compact-excerpt">{item.processed?.summary??<Highlight text={conciseExcerpt(item.processed?.excerpt??item.text,query,item.processed?260:200)} query={query}/>}</p>}
+    {item.processed&&item.processed.topics.length>0&&<p className="moment-topics">{[...new Set(item.processed.topics)].slice(0,3).join(' · ')}</p>}
     <div className="moment-actions"><button className="text-action" aria-expanded={preview===item.id} onClick={()=>setPreview(p=>p===item.id?null:item.id)}>{preview===item.id?'Cerrar preview':'Preview'} ▷</button>
       <button className="text-action" aria-expanded={context===item.id} onClick={()=>{setPreview(null);setContext(c=>c===item.id?null:item.id);}}>{context===item.id?'Cerrar contexto':'Ver contexto completo'}</button>
       {item.longMoment&&<span className="source-precision">Momento de más de 3 min · revisar continuidad</span>}
     </div>
-    {preview===item.id&&<div className="list-video-preview"><VideoPreview youtubeId={item.youtubeId} occurrence={item.occurrence} title={item.title}/></div>}
+    {preview===item.id&&<div className="list-video-preview"><VideoPreview youtubeId={item.youtubeId} occurrence={item.occurrence} title={item.processed?.title??item.title}/></div>}
     {context===item.id&&<FullContext item={item} query={query}/>}
   </article>)}</div>;
 }
