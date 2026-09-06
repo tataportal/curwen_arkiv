@@ -59,6 +59,7 @@ export function formatDate(dateStr: string | null | undefined): string {
  * Builds direct YouTube link with start timestamp
  */
 export function buildYouTubeTimestampUrl(youtubeId: string, startSeconds: number): string {
-  const sec = Math.round(Math.max(0,startSeconds)*1000)/1000;
-  return `https://youtube.com/watch?v=${youtubeId}&t=${sec}`;
+  // Watch-page links reject fractional timestamps; keep cue precision in the player API.
+  const sec = Math.floor(Math.max(0, Number.isFinite(startSeconds) ? startSeconds : 0));
+  return `https://www.youtube.com/watch?v=${encodeURIComponent(youtubeId)}&t=${sec}s`;
 }

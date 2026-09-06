@@ -17,9 +17,9 @@ test('initial home contains only the search instrument and accessible hidden tex
   assert(!html.includes('network-explorer'));
   assert(!html.includes('CURWEN ARCHIVE'));
 });
-test('timestamp links are exact external YouTube links, including fractional cue times', () => {
+test('timestamp links use the whole second containing the cue for YouTube compatibility', () => {
   const html = renderToStaticMarkup(<TimestampLink youtubeId="testvideo01" seconds={1112.9} />);
-  assert(html.includes('https://youtube.com/watch?v=testvideo01&amp;t=1112.9'));
+  assert(html.includes('https://www.youtube.com/watch?v=testvideo01&amp;t=1112s'));
   assert(html.includes('18:32'));
   assert(html.includes('target="_blank"'));
   assert(html.includes('noopener noreferrer'));
@@ -68,7 +68,7 @@ test('processed moments render reviewed content while preserving the matching cu
  const html=renderToStaticMarkup(<SearchResults episodes={[episode]} query="Archive"/>);
  assert(html.includes('Debate sobre la biblioteca'));assert(html.includes('Se comenta una propuesta'));
  assert(html.includes('Test episode'));assert(html.includes('Bibliotecas · Acceso a la cultura'));
- assert(html.includes('data-cue-start-seconds="12.34"'));assert(html.includes('t=12.34'));
+ assert(html.includes('data-cue-start-seconds="12.34"'));assert(html.includes('t=12s'));
  assert(!html.includes('Archive Subject meets'));assert(!html.includes('full-moment-context'));
 });
 test('low-quality processed content requires a neutral title and literal excerpt without a generated summary',()=>{
