@@ -55,6 +55,11 @@ export function formatDate(dateStr: string | null | undefined): string {
   }
 }
 
+/** Presentation lead-in only: never mutate the source occurrence. */
+export function evidenceStartSeconds(cueSeconds: number): number {
+  return Math.max(0, Number.isFinite(cueSeconds) ? Math.floor(cueSeconds) - 3 : 0);
+}
+
 /**
  * Builds direct YouTube link with start timestamp
  */

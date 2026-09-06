@@ -3,15 +3,16 @@ import type {SearchOccurrence} from '@/lib/retrieval/model';
 import {useEffect,useRef,useState} from 'react';
 import {loadYouTubeAPI,type YouTubePlayer} from '@/lib/youtube-api';
 import {applyPreviewVolume,getPreviewVolume,subscribePreviewVolume} from '@/lib/preview-volume';
-import {buildYouTubeTimestampUrl,formatTimestamp} from '@/lib/utils';
+import {buildYouTubeTimestampUrl,evidenceStartSeconds,formatTimestamp} from '@/lib/utils';
 export const PREVIEW_SECONDS=8;
 export default function VideoPreview({youtubeId,occurrence,title,continuous=false}:{youtubeId:string;occurrence:SearchOccurrence;title:string;continuous?:boolean}) {
   const host=useRef<HTMLDivElement>(null),player=useRef<YouTubePlayer|null>(null);
   const [state,setState]=useState('loading'),[observedStart,setObservedStart]=useState<number|null>(null);
   const firstPlaying=useRef(false);
   const [muted,setMuted]=useState<boolean|null>(null),[actualVolume,setActualVolume]=useState<number|null>(null);
-  const start=occurrence.cue_start_seconds;
-  if(!Number.isFinite(start)||start<0||occurrence.videoId!==youtubeId)throw new Error('Preview requires a valid cue occurrence');
+  const cue=occurrence.cue_start_seconds;
+  const start=evidenceStartSeconds(cue);
+  if(!Number.isFinite(cue)||cue<0||occurrence.videoId!==youtubeId)throw new Error('Preview requires a valid cue occurrence');
   const play=()=>{setState('playing');if(player.current)applyPreviewVolume(player.current);player.current?.loadVideoById({videoId:youtubeId,startSeconds:start,...(continuous?{}:{endSeconds:start+PREVIEW_SECONDS})});};
   useEffect(()=>{
     let disposed=false,stopped=false,instance:YouTubePlayer|undefined;

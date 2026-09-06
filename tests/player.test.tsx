@@ -46,7 +46,7 @@ test('preview enables sound before loading the exact 8-second range and destroys
    await act(async()=>{tree=create(<VideoPreview youtubeId="abcdefghijk" occurrence={{...fixture().moments[0].occurrences[0],videoId:"abcdefghijk",cue_start_seconds:1424.44}} title="Evidence"/>,{createNodeMock:()=>({replaceChildren(){},querySelector(){return null;}})});});
    await act(async()=>{options.events.onReady({target:fake});});
    assert.deepEqual(calls.slice(0,2),['unmute','load']);
-   assert.deepEqual(loads[0],{videoId:'abcdefghijk',startSeconds:1424.44,endSeconds:1432.44});
+   assert.deepEqual(loads[0],{videoId:'abcdefghijk',startSeconds:1421,endSeconds:1429});
    assert.equal(options.playerVars.mute,0);assert.equal(options.playerVars.controls,0);assert.equal(options.playerVars.playsinline,1);
    await act(async()=>setPreviewVolume(35));assert.equal(volume,35);assert.equal(loads.length,1);assert.equal(destroyed,0);
    await act(async()=>togglePreviewSound());assert.equal(volume,0);assert(muted);
@@ -87,7 +87,7 @@ test('continuous hover preview retains cue seek and volume, plays past eight sec
   const occurrence={...fixture().moments[0].occurrences[0],videoId:'abcdefghijk',cue_start_seconds:1424.44};
   await act(async()=>{tree=create(<VideoPreview continuous youtubeId="abcdefghijk" occurrence={occurrence} title="Evidence"/>,{createNodeMock:()=>({replaceChildren(){},querySelector(){return null;}})});});
   await act(async()=>options.events.onReady({target:fake}));
-  assert.deepEqual(loads,[{videoId:'abcdefghijk',startSeconds:1424.44}]);
+  assert.deepEqual(loads,[{videoId:'abcdefghijk',startSeconds:1421}]);
   time=1460;await act(async()=>tick!());assert.equal(pauses,0);
   await act(async()=>tree!.update(<VideoPreview continuous youtubeId="abcdefghijk" occurrence={occurrence} title="Evidence"/>));
   assert.equal(loads.length,1);assert.equal(destroyed,0);

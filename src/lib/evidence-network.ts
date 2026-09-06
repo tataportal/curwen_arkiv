@@ -1,9 +1,9 @@
-import type {RetrievalEpisode,DiscussionMoment,RetrievalResponse as SearchResponse,SearchOccurrence,SpeechSentence,SpeechTimeline,ProcessedMomentView} from './retrieval/model';
+import type {RetrievalEpisode,DiscussionMoment,RetrievalResponse as SearchResponse,SearchOccurrence,SpeechSentence,SpeechToken,SpeechTimeline,ProcessedMomentView} from './retrieval/model';
 import {findOccurrences} from './retrieval/occurrences';
 import {normalizeQuery} from './retrieval/query';
 import { CONCEPT_TERMS } from './concept-terms';
 
-export type Evidence = { processed?:ProcessedMomentView; youtubeId:string; title:string; seconds:number; endSeconds?:number; text:string; precision:'cue'; chunkId:string; momentId:string; occurrence:SearchOccurrence; occurrences:SearchOccurrence[]; fullContext:SpeechSentence[]; longMoment:boolean };
+export type Evidence = { evidenceTokens?:SpeechToken[]; processed?:ProcessedMomentView; youtubeId:string; title:string; seconds:number; endSeconds?:number; text:string; precision:'cue'; chunkId:string; momentId:string; occurrence:SearchOccurrence; occurrences:SearchOccurrence[]; fullContext:SpeechSentence[]; longMoment:boolean };
 export type EvidenceNode = { id:string; label:string; kind:'term'|'moment'; evidence?:Evidence[] };
 export type Relationship = { id:string; source:string; target:string; label:string; evidence:Evidence[] };
 export type NetworkBranch = { nodes:EvidenceNode[]; edges:Relationship[] };
@@ -40,7 +40,7 @@ export function resultEvidence(episode:RetrievalEpisode,moment:DiscussionMoment,
   const o=occurrences[0];if(!o)return [];
   return [{youtubeId:episode.videoId,title:episode.title,seconds:o.cue_start_seconds,endSeconds:moment.endSeconds,
     text:moment.context.map(s=>s.text).join(' '),precision:'cue',chunkId:o.occurrenceId,momentId:moment.momentId,
-    processed:moment.processed,occurrence:o,occurrences,fullContext:moment.context,longMoment:moment.endSeconds-moment.startSeconds>180}];
+    processed:moment.processed,occurrence:o,occurrences,evidenceTokens:moment.evidenceTokens,fullContext:moment.context,longMoment:moment.endSeconds-moment.startSeconds>180}];
 }
 function uniqueEvidence(items:Evidence[]) {
   return [...new Map(items.map(e=>[e.momentId,e])).values()];

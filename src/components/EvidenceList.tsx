@@ -1,8 +1,9 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {chronologicalMoments,conciseExcerpt,type EvidenceMoment} from '@/lib/evidence-presentation';
+import {chronologicalMoments,momentTopic,momentExcerpt,type EvidenceMoment} from '@/lib/evidence-presentation';
 import {TimestampLink,Highlight} from './ArchivePrimitives';
+import {buildYouTubeTimestampUrl,evidenceStartSeconds} from '@/lib/utils';
 import VolumeControl from './VolumeControl';
 import VideoPreview from './VideoPreview';
 function FullContext({item,query}:{item:EvidenceMoment;query:string}) {
@@ -14,9 +15,13 @@ function FullContext({item,query}:{item:EvidenceMoment;query:string}) {
 export function EvidenceList({items,query}:{items:EvidenceMoment[];query:string}) {
   const [preview,setPreview]=useState<string|null>(null),[context,setContext]=useState<string|null>(null);
   return <div className="compact-evidence-list">{chronologicalMoments(items).map(item=><article className="compact-moment" key={item.id} data-moment-id={item.id} data-occurrence-id={item.occurrence.occurrenceId} data-cue-start-seconds={item.occurrence.cue_start_seconds} data-processed={item.processed?.version}>
-    <div className="compact-moment-heading"><TimestampLink youtubeId={item.youtubeId} seconds={item.occurrence.cue_start_seconds}/><h3>{item.processed?.title??item.title}</h3></div>
-    {item.processed&&<p className="moment-episode">{item.title}</p>}
-    {context!==item.id&&<p className="compact-excerpt">{item.processed?.summary??<Highlight text={conciseExcerpt(item.processed?.excerpt??item.text,query,item.processed?260:200)} query={query}/>}</p>}
+    <a className="moment-source" href={buildYouTubeTimestampUrl(item.youtubeId,evidenceStartSeconds(item.occurrence.cue_start_seconds))} target="_blank" rel="noopener noreferrer">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={'https://i.ytimg.com/vi/'+encodeURIComponent(item.youtubeId)+'/mqdefault.jpg'} alt="" loading="lazy" width="88" height="50"/>
+      <span><small>{/brutalidad/i.test(item.title)?'Brutalidad Política':'Curwen'}</small><span>{item.title} ↗</span></span>
+    </a>
+    <div className="compact-moment-heading"><TimestampLink youtubeId={item.youtubeId} seconds={item.occurrence.cue_start_seconds}/><h3>{momentTopic(item,query)}</h3></div>
+    {context!==item.id&&<p className="compact-excerpt"><Highlight text={momentExcerpt(item,query)} query={query}/></p>}
     {item.processed&&item.processed.topics.length>0&&<p className="moment-topics">{[...new Set(item.processed.topics)].slice(0,3).join(' · ')}</p>}
     <div className="moment-actions"><button className="text-action" aria-expanded={preview===item.id} onClick={()=>setPreview(p=>p===item.id?null:item.id)}>{preview===item.id?'Cerrar preview':'Preview'} ▷</button>
       <button className="text-action" aria-expanded={context===item.id} onClick={()=>{setPreview(null);setContext(c=>c===item.id?null:item.id);}}>{context===item.id?'Cerrar contexto':'Ver contexto completo'}</button>

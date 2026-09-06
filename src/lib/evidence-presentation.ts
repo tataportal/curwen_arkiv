@@ -1,4 +1,6 @@
-import type {Evidence} from './evidence-network';
+import {containsTerm,type Evidence} from './evidence-network';
+import {CONCEPT_TERMS} from './concept-terms';
+import {evidenceStartSeconds} from './utils';
 import type {RetrievalEpisode} from './retrieval/model';
 export interface EvidenceMoment extends Evidence { id:string; context:Evidence[] }
 export function queryConcepts(query:string):string[] {
@@ -33,11 +35,28 @@ export function resultMoments(episodes:RetrievalEpisode[]):EvidenceMoment[] {
     const occurrence=m.occurrences[0];
     return {id:m.momentId,momentId:m.momentId,youtubeId:e.videoId,title:e.title,seconds:occurrence.cue_start_seconds,
       endSeconds:m.endSeconds,text:m.excerpt,precision:'cue' as const,chunkId:occurrence.occurrenceId,occurrence,
-      processed:m.processed,context:[],fullContext:m.context,occurrences:m.occurrences,longMoment:m.endSeconds-m.startSeconds>180};
+      evidenceTokens:m.evidenceTokens,processed:m.processed,context:[],fullContext:m.context,occurrences:m.occurrences,longMoment:m.endSeconds-m.startSeconds>180};
   }));
 }
 export function chronologicalMoments(items:EvidenceMoment[]) {
   const groups=new Map<string,EvidenceMoment[]>();
   for(const item of items)groups.set(item.youtubeId,[...(groups.get(item.youtubeId)||[]),item]);
   return [...groups.values()].flatMap(group=>group.sort((a,b)=>a.seconds-b.seconds));
+}
+
+/** Literal topics from the local excerpt, not inferred claims about the episode. */
+export function momentTopic(item:EvidenceMoment,query:string) {
+  if(item.processed?.title)return item.processed.title;
+  const text=momentExcerpt(item,query);
+  const topics=['Juegos Panamericanos',...CONCEPT_TERMS].filter(term=>containsTerm(text,term)).slice(0,2);
+  return 'Sobre '+(topics.length?topics.join(' y '):queryConcepts(query).join(' y ')||item.occurrence.matchedText);
+}
+export function momentExcerpt(item:EvidenceMoment,query:string) {
+  const start=evidenceStartSeconds(item.occurrence.cue_start_seconds);
+  const tokens=item.evidenceTokens?.filter(t=>t.endSeconds>start);
+  const text=tokens?.length?tokens.map(t=>t.text).join(' '):item.fullContext.filter(s=>s.endSeconds>start).map(s=>s.text).join(' ');
+  if(!text)return conciseExcerpt(item.processed?.excerpt??item.text,query,520);
+  const clean=text.replace(/\s+/g,' ').trim();
+  if(clean.length<=520)return clean;
+  return clean.slice(0,clean.lastIndexOf(' ',520))+' …';
 }

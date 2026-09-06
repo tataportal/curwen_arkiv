@@ -1,9 +1,10 @@
 import { ArrowUpRight } from 'lucide-react';
-import { buildYouTubeTimestampUrl, formatTimestamp } from '@/lib/utils';
+import { buildYouTubeTimestampUrl, evidenceStartSeconds, formatTimestamp } from '@/lib/utils';
 export function TimestampLink({ youtubeId, seconds }: { youtubeId: string; seconds: number }) {
-  return <a className="timestamp" href={buildYouTubeTimestampUrl(youtubeId, seconds)} target="_blank" rel="noopener noreferrer"
-    aria-label={formatTimestamp(seconds) + ', abrir en YouTube en una nueva pestaña'}>
-    <span>{formatTimestamp(seconds)}</span><ArrowUpRight size={13} strokeWidth={1.5} aria-hidden="true" />
+  const start=evidenceStartSeconds(seconds);
+  return <a data-cue-start-seconds={seconds} title="Reproducir con 3 segundos de contexto previo" className="timestamp" href={buildYouTubeTimestampUrl(youtubeId, start)} target="_blank" rel="noopener noreferrer"
+    aria-label={formatTimestamp(start) + ', abrir en YouTube en una nueva pestaña'}>
+    <span>{formatTimestamp(start)}</span><ArrowUpRight size={13} strokeWidth={1.5} aria-hidden="true" />
   </a>;
 }
 export function Highlight({ text, query }: { text: string; query: string }) {

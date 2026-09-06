@@ -19,8 +19,8 @@ test('initial home contains only the search instrument and accessible hidden tex
 });
 test('timestamp links use the whole second containing the cue for YouTube compatibility', () => {
   const html = renderToStaticMarkup(<TimestampLink youtubeId="testvideo01" seconds={1112.9} />);
-  assert(html.includes('https://www.youtube.com/watch?v=testvideo01&amp;t=1112s'));
-  assert(html.includes('18:32'));
+  assert(html.includes('https://www.youtube.com/watch?v=testvideo01&amp;t=1109s'));
+  assert(html.includes('18:29'));
   assert(html.includes('target="_blank"'));
   assert(html.includes('noopener noreferrer'));
 });
@@ -66,10 +66,10 @@ test('processed moments render reviewed content while preserving the matching cu
  episode.moments[0].processed={version:'semantic-v2.0',title:'Debate sobre la biblioteca',summary:'Se comenta una propuesta para la biblioteca.',excerpt:'Archive Subject meets Central Library.',eligibility:'medium',primaryFamily:'SOCIEDAD',topics:['Bibliotecas','Acceso a la cultura']};
  const payload=response([episode]);validateRetrievalResponse(payload);
  const html=renderToStaticMarkup(<SearchResults episodes={[episode]} query="Archive"/>);
- assert(html.includes('Debate sobre la biblioteca'));assert(html.includes('Se comenta una propuesta'));
+ assert(html.includes('Debate sobre la biblioteca'));assert(html.includes('Central Library'));
  assert(html.includes('Test episode'));assert(html.includes('Bibliotecas · Acceso a la cultura'));
- assert(html.includes('data-cue-start-seconds="12.34"'));assert(html.includes('t=12s'));
- assert(!html.includes('Archive Subject meets'));assert(!html.includes('full-moment-context'));
+ assert(html.includes('data-cue-start-seconds="12.34"'));assert(html.includes('t=9s'));
+ assert(!html.includes('Se comenta una propuesta'));assert(!html.includes('full-moment-context'));
 });
 test('low-quality processed content requires a neutral title and literal excerpt without a generated summary',()=>{
  const episode=fixture();
@@ -79,4 +79,24 @@ test('low-quality processed content requires a neutral title and literal excerpt
  assert(html.includes('Mención de Archive Subject'));assert(html.includes('Central Library'));
  episode.moments[0].processed.summary='Unsupported polished summary';
  assert.throws(()=>validateRetrievalResponse(response([episode])),/semántica/);
+});
+
+test('evidence lead-in clamps to zero without changing cue identity',()=>{
+ const html=renderToStaticMarkup(<TimestampLink youtubeId="testvideo01" seconds={1.25}/>);
+ assert(html.includes('t=0s'));assert(html.includes('00:00'));assert(html.includes('data-cue-start-seconds="1.25"'));
+});
+
+test('moment excerpt recovers preceding cue text while retaining original evidence time',async()=>{
+ const {momentExcerpt}=await import('../src/lib/evidence-presentation');
+ const {evidenceStartSeconds}=await import('../src/lib/utils');
+ const item=resultMoments([fixture()])[0];
+ item.occurrence={...item.occurrence,cue_start_seconds:12.34};
+ item.evidenceTokens=[
+  {text:'Anterior fuera.',key:'fuera',cueId:'old',startSeconds:1,endSeconds:8,wordStartSeconds:1,explicitTime:false},
+  {text:'Contexto previo.',key:'previo',cueId:'before',startSeconds:8.5,endSeconds:11,wordStartSeconds:8.5,explicitTime:false},
+  {text:'Archive Subject.',key:'archive',cueId:'match',startSeconds:12.34,endSeconds:15,wordStartSeconds:12.34,explicitTime:false}
+ ];
+ assert.equal(evidenceStartSeconds(12.34),9);
+ assert.equal(momentExcerpt(item,'Archive'),'Contexto previo. Archive Subject.');
+ assert.equal(item.occurrence.cue_start_seconds,12.34);
 });
