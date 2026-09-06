@@ -205,3 +205,23 @@ main { position:relative; min-height:100dvh; outline:none; }
  .network-controls { right:20px; bottom:-10px; }
 }
 .network-node { transform:translate(-50%,-2px); padding:0 8px; min-height:44px; }
+
+/* Keep the existing graph presentation within one viewport. */
+.search-experience:has(.home-network) { height:100dvh; overflow:hidden; }
+.search-experience .home-network { position:fixed; inset:0; height:100dvh; }
+.home-network .network-explorer { min-height:0; }
+.home-network .network-viewport { position:absolute; inset:120px 24px 76px; width:auto; height:auto; }
+.home-network .network-controls { bottom:max(20px,env(safe-area-inset-bottom)); right:24px; }
+.home-network .network-inspector { top:120px; max-height:calc(100dvh - 196px); }
+.search-experience:has(.home-network) .search-content { position:fixed; inset:auto 24px max(20px,env(safe-area-inset-bottom)); margin:0 auto; padding:0; }
+.search-experience:has(.home-network):not(.show-results) .results-summary { margin:0; justify-content:center; }
+.search-experience:has(.home-network):not(.show-results) .context-nav { display:none; }
+.search-experience:has(.home-network).show-results .search-content { inset:120px 24px 20px; overflow-y:auto; overscroll-behavior:contain; padding:0 24px 24px; background:rgba(10,11,11,.98); }
+.search-experience:has(.home-network).show-results .results-summary { position:sticky; top:0; z-index:2; margin:0; padding:16px 0; background:var(--bg); }
+@media(max-width:640px) {
+  .home-network .network-viewport { inset:100px 12px 94px; }
+  .home-network .network-controls { right:12px; bottom:max(16px,env(safe-area-inset-bottom)); }
+  .home-network .network-inspector { top:100px; max-height:calc(100dvh - 194px); }
+  .search-experience:has(.home-network) .search-content { left:16px; right:132px; max-width:none; }
+  .search-experience:has(.home-network).show-results .search-content { inset:100px 12px 12px; padding:0 16px 20px; }
+}

@@ -40,10 +40,16 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
     if(!viewport.current||!nodes.length)return;
     const xs=visibleNodes.map(n=>n.x),ys=visibleNodes.map(n=>n.y);
     const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
-    const z=Math.max(.55,Math.min(1,viewport.current.clientWidth/(maxX-minX+210),viewport.current.clientHeight/(maxY-minY+140)));
+    const z=Math.max(.15,Math.min(1,(viewport.current.clientWidth-48)/(maxX-minX+210),(viewport.current.clientHeight-64)/(maxY-minY+140)));
     offset.current={x:-(minX+maxX)/2*z,y:-(minY+maxY)/2*z};setZoom(z);transform(z);
   }
-  useEffect(()=>{fit();},[nodes.length,pathIndex]);
+  useEffect(()=>{
+    fit();
+    if(!viewport.current)return;
+    const resize=new ResizeObserver(()=>fit());
+    resize.observe(viewport.current);
+    return()=>resize.disconnect();
+  },[nodes.length,pathIndex]);
   function merge(anchor:PositionedNode,branch:NetworkBranch,all=false) {
     const mobile=(viewport.current?.clientWidth||1000)<640;
     const limit=all?10:mobile?4:7;
