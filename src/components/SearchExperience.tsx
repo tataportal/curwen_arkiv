@@ -4,6 +4,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import SearchResults from './SearchResults';
 import Pagination from './Pagination';
+import {searchExpression} from '@/lib/evidence-presentation';
 import { ArchiveError } from './ArchivePrimitives';
 import { archiveRequest, type SearchResponse } from './archive-client';
 const NetworkExplorer = dynamic(() => import('./NetworkExplorer'));
@@ -34,7 +35,7 @@ export default function SearchExperience() {
     if (!q) { setLoading(false); return; }
     setLoading(true);
     try {
-      const result = await archiveRequest<SearchResponse>('/api/search?q=' + encodeURIComponent(q) + '&page=' + nextPage, controller.signal);
+      const result = await archiveRequest<SearchResponse>('/api/search?q=' + encodeURIComponent(searchExpression(q)) + '&page=' + nextPage, controller.signal);
       if (!controller.signal.aborted) setData(result);
     } catch { if (!controller.signal.aborted) setError(true); }
     finally { if (!controller.signal.aborted) setLoading(false); }

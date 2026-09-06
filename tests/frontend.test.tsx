@@ -17,7 +17,7 @@ test('initial home contains only the search instrument and accessible hidden tex
 });
 test('timestamp links are exact external YouTube links, including fractional cue times', () => {
   const html = renderToStaticMarkup(<TimestampLink youtubeId="testvideo01" seconds={1112.9} />);
-  assert(html.includes('https://youtube.com/watch?v=testvideo01&amp;t=1112'));
+  assert(html.includes('https://youtube.com/watch?v=testvideo01&amp;t=1112.9'));
   assert(html.includes('18:32'));
   assert(html.includes('target="_blank"'));
   assert(html.includes('noopener noreferrer'));
@@ -27,7 +27,7 @@ test('safe literal highlighting never treats transcript text as HTML or query as
   assert(!html.includes('<script>'));
   assert(html.includes('<mark>[a]</mark>'));
 });
-test('episode sections retain independent API clusters and nested cue evidence', () => {
+test('compact moments keep independent clusters and defer all full context', () => {
   // Neutral test-only fixtures; never connected to the running application.
   const moment: ClusteredSearchResult = {
     cluster_id: 'one', video_id: 'video', youtube_id: 'testvideo01', video_title: 'Test episode',
@@ -39,9 +39,10 @@ test('episode sections retain independent API clusters and nested cue evidence',
     ],
   };
   const html = renderToStaticMarkup(<SearchResults results={[moment, { ...moment, cluster_id:'two', primary_start_seconds:1600, timestamps:[] }]} query="test" />);
-  assert.equal((html.match(/<article/g) || []).length, 1);
-  assert.equal((html.match(/class="occurrence"/g) || []).length, 2);
-  assert.equal((html.match(/<details/g) || []).length, 1);
+  assert.equal((html.match(/<article/g) || []).length, 2);
+  assert.equal((html.match(/class="compact-moment"/g) || []).length, 2);
+  assert(!html.includes('Continued test text'));
+  assert.equal((html.match(/Ver contexto completo/g)||[]).length,2);
   assert(!html.includes('<iframe'));
 });
 test('unconnected graph never invents edges; a pair of user terms remains unconnected', () => {
@@ -49,4 +50,18 @@ test('unconnected graph never invents edges; a pair of user terms remains unconn
   assert.equal((html.match(/class="network-node /g) || []).length, 2);
   assert(!html.includes('<line'));
   assert(!html.includes('network-evidence'));
+  assert(!html.includes('network-inspector'));
+});
+
+import {conciseExcerpt,queryConcepts,searchExpression,chronologicalMoments,evidenceMoments} from '../src/lib/evidence-presentation';
+test('query pairs and short excerpts retain source words, not invented connections',()=>{
+ assert.deepEqual(queryConcepts('Vacunas, Keiko'),['Vacunas','Keiko']);
+ assert.deepEqual(queryConcepts('Vacunas + Keiko'),['Vacunas','Keiko']);
+ assert.equal(searchExpression('Vacunas, Keiko'),'"Vacunas" "Keiko"');
+ const text='Antes. '.repeat(30)+'La compra de vacunas ocurrió durante la pandemia. Más contexto. '.repeat(10);
+ const excerpt=conciseExcerpt(text,'vacunas');
+ assert(excerpt.includes('vacunas'));assert(excerpt.length<=204);assert(!excerpt.includes('Antes. Antes. Antes. Antes.'));
+ const e={youtubeId:'testvideo01',title:'episode',text:'Evidence',precision:'cue' as const,chunkId:'1',seconds:42};
+ const items=evidenceMoments([e,e,{...e,chunkId:'2',seconds:12}]);
+ assert.equal(items.length,2);assert.deepEqual(chronologicalMoments(items).map(i=>i.seconds),[12,42]);
 });

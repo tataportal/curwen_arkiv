@@ -31,3 +31,13 @@ GitHub Pages builds a static copy in a temporary directory. Existing Next API ro
 Pages episode links use /episode/?id=VIDEO_ID so newly imported episodes do not require a rebuild. Inbound /episode/VIDEO_ID links redirect through the Pages 404 shell, preserving timestamps. Their first HTTP response is 404, a Pages limitation.
 
 The publish checkout is /tmp/curwen-publish. The working directory's original git history and local downloaded corpus were not uploaded.
+
+## Four information levels
+
+The graph renders concept/term nodes and co-mention edges only, including paired searches. Commas and `+` delimit two concepts; each root expands independently from real search results. Their direct edge still requires shared evidence. Episode and fragment titles never become map nodes.
+
+Hover (220 ms), keyboard focus, or tap opens one anchored floating preview. A click/tap pins it; Escape, close, or clicking the map dismisses it. The video uses a 16:9 YouTube player, muted, with the original numeric start and an 8-second end. Reduced-motion users get a play control instead of autoplay; blocked/unavailable playback retains an external link. Changing evidence or opening the next level destroys the previous player. Only the timestamp and title appear beneath quick video evidence; no transcript paragraph is repeated there.
+
+“Ver N momentos” opens compact chronological evidence rows with a source title, timestamp, up to two short source sentences, and one optional preview. The global result list uses the same component. Only “Ver contexto completo” fetches the episode transcript and shows the source interval plus roughly 25 seconds on either side; cue-bearing sources retain cue timing, fragment-only sources retain their original boundaries. Opening context replaces the short excerpt for that row.
+
+This changes presentation only. The deployed legacy search still has fragment-level timing where cues are unavailable. Decimal timestamps are preserved in URLs and preview API commands, but neither word-level precision nor an exact video frame is invented. YouTube can seek to a neighboring keyframe and browser policies can block autoplay: https://developers.google.com/youtube/iframe_api_reference . No embeddings, expanded corpus ingestion, or new retrieval backend were deployed.

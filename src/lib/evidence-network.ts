@@ -1,7 +1,7 @@
 import type { ClusteredSearchResult, SearchResponse } from './types';
 import { CONCEPT_TERMS } from './concept-terms';
 
-export type Evidence = { youtubeId:string; title:string; seconds:number; text:string; precision:'cue'|'fragment'; chunkId:string };
+export type Evidence = { youtubeId:string; title:string; seconds:number; endSeconds?:number; text:string; precision:'cue'|'fragment'; chunkId:string };
 export type EvidenceNode = { id:string; label:string; kind:'term'|'moment'; evidence?:Evidence[] };
 export type Relationship = { id:string; source:string; target:string; label:string; evidence:Evidence[] };
 export type NetworkBranch = { nodes:EvidenceNode[]; edges:Relationship[] };
@@ -27,7 +27,7 @@ export function transcriptTerms(text:string):string[] {
 }
 export function resultEvidence(result:ClusteredSearchResult):Evidence[] {
   return result.timestamps.map(t=>({youtubeId:result.youtube_id,title:result.video_title,seconds:t.start_seconds,
-    text:t.text_snippet,precision:result.timestamp_precision||'cue',chunkId:t.chunk_id}));
+    endSeconds:t.end_seconds,text:t.text_snippet,precision:result.timestamp_precision||'cue',chunkId:t.chunk_id}));
 }
 function uniqueEvidence(items:Evidence[]) {
   return [...new Map(items.map(e=>[e.youtubeId+':'+e.chunkId+':'+e.seconds,e])).values()];
@@ -72,8 +72,7 @@ export function buildCommonPaths(from:string,to:string,response:SearchResponse):
   const distinct=[...new Map(evidence.map(e=>[e.youtubeId,e])).values()].slice(0,3);
   return distinct.map(e=>{
     const middle='moment:'+e.youtubeId+':'+e.seconds;
-    return {id:middle,label:e.title,nodes:[{id:termId(from),label:from,kind:'term'},{id:middle,label:'Fragmento compartido',kind:'moment',evidence:[e]},{id:termId(to),label:to,kind:'term'}],
-      edges:[{id:termId(from)+'::'+middle,source:termId(from),target:middle,label:'Mención en el mismo fragmento',evidence:[e]},
-        {id:middle+'::'+termId(to),source:middle,target:termId(to),label:'Mención en el mismo fragmento',evidence:[e]}]};
+    return {id:middle,label:e.title,nodes:[{id:termId(from),label:from,kind:'term'},{id:termId(to),label:to,kind:'term'}],
+      edges:[{id:[termId(from),termId(to)].sort().join('::'),source:termId(from),target:termId(to),label:'Mencionados en el mismo fragmento',evidence:[e]}]};
   });
 }

@@ -52,7 +52,8 @@ test('paths require both terms in the same evidence fragment, not merely the sam
  const separate=response([moment('1','Archive Subject only.'),moment('2','Central Library only.')]);
  assert.equal(buildCommonPaths('Archive Subject','Central Library',separate).length,0);
  const together=response([moment('3','Archive Subject discusses Central Library.')]);
- assert.equal(buildCommonPaths('Archive Subject','Central Library',together)[0].edges.length,2);
+ assert.equal(buildCommonPaths('Archive Subject','Central Library',together)[0].edges.length,1);
+ assert(buildCommonPaths('Archive Subject','Central Library',together).every(p=>p.nodes.every(n=>n.kind==='term')));
 });
 test('literal boundaries prevent partial surname or accent errors',()=>{
  assert(containsTerm('Interviene José Pérez.','jose perez'));assert(!containsTerm('Interviene Josefina.','jose'));
