@@ -11,13 +11,12 @@ export type DemoSelection={label:string;items:DemoMoment[];anchor:DemoAnchor;exp
 
 export default function DemoNetwork({label,items,overview=false,onPreview,onLeave,activeLabel,busy,onGraphChange,onMoments}: {label:string;items:DemoMoment[];overview?:boolean;onPreview:(selection:DemoSelection)=>void;onLeave:()=>void;activeLabel:string;busy:boolean;onGraphChange:()=>void;onMoments:(items:DemoMoment[],path:string[])=>void}) {
  const [focused,setFocused]=useState<string|null>(null);
- const [graph,setGraph]=useState(()=>initialDemoGraph(label,items,overview)),[history,setHistory]=useState<{graph:DemoGraph;pan:{x:number;y:number};zoom:number;focused:string|null}[]>([]),[zoom,setZoom]=useState(1),[pan,setPan]=useState({x:0,y:0}),[size,setSize]=useState({width:1000,height:550});
+ const [graph,setGraph]=useState(()=>initialDemoGraph(label,items,overview)),[history,setHistory]=useState<{graph:DemoGraph;pan:{x:number;y:number};focused:string|null}[]>([]),[pan,setPan]=useState({x:0,y:0}),[size,setSize]=useState({width:1000,height:550});
  const initial=useRef(initialDemoGraph(label,items,overview));
  const focusedNode=graph.nodes.find(n=>n.id===focused);
  const viewport=useRef<HTMLDivElement>(null),plane=useRef<HTMLDivElement>(null),motionTime=useRef(0),pointer=useRef<{x:number;y:number;px:number;py:number}|null>(null);
  const bounds={x:Math.max(...initial.current.nodes.map(n=>Math.abs(projectNode(n).x)))+120,y:Math.max(...initial.current.nodes.map(n=>Math.abs(projectNode(n).y)))+75};
- const fit=Math.min(1,size.width/(2*bounds.x),size.height/(2*bounds.y)),scale=fit*zoom;
- const outside=graph.nodes.filter(n=>Math.abs(projectNode(n).x*scale+pan.x)>size.width/2-70||Math.abs(projectNode(n).y*scale+pan.y)>size.height/2-40).length;
+ const fit=Math.min(1,size.width/(2*bounds.x),size.height/(2*bounds.y)),scale=fit;
  useEffect(()=>{const el=viewport.current;if(!el)return;const resize=new ResizeObserver(([entry])=>setSize({width:entry.contentRect.width,height:entry.contentRect.height}));resize.observe(el);return()=>resize.disconnect();},[]);
  useEffect(()=>{
   const surface=plane.current;if(!surface)return;let frame=0,last=0;const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -35,11 +34,10 @@ export default function DemoNetwork({label,items,overview=false,onPreview,onLeav
   };
   frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame);
  },[busy,graph]);
- function remember(){setHistory(h=>[...h,{graph,pan,zoom,focused}]);}
+ function remember(){setHistory(h=>[...h,{graph,pan,focused}]);}
  function expand(id:string){onGraphChange();const next=expandDemoGraph(graph,id,items);if(next!==graph){remember();setGraph(next);}setFocused(id);}
  function recenter(){if(!focusedNode)return;onGraphChange();remember();setPan({x:-projectNode(focusedNode).x*scale,y:-projectNode(focusedNode).y*scale});}
- function back(){const prior=history[history.length-1];if(!prior)return;onGraphChange();setGraph(prior.graph);setPan(prior.pan);setZoom(prior.zoom);setFocused(prior.focused);setHistory(history.slice(0,-1));}
- function fitAll(){onGraphChange();remember();const x=Math.max(...graph.nodes.map(n=>Math.abs(projectNode(n).x)))+140,y=Math.max(...graph.nodes.map(n=>Math.abs(projectNode(n).y)))+100;setZoom(Math.min(1,size.width/(2*x),size.height/(2*y))/fit);setPan({x:0,y:0});}
+ function back(){const prior=history[history.length-1];if(!prior)return;onGraphChange();setGraph(prior.graph);setPan(prior.pan);setFocused(prior.focused);setHistory(history.slice(0,-1));}
 
  return <div className={'demo-network'+(busy?' has-evidence-preview':'')} data-idle-paused={busy}>
   <AmbientBackdrop controls={false}/>
@@ -50,6 +48,6 @@ export default function DemoNetwork({label,items,overview=false,onPreview,onLeav
    </div>
   </div>
   {focusedNode&&<div className="demo-node-actions"><span>{focusedNode.label}{focusedNode.depth===2?' · nivel 2':''}</span><button onClick={()=>onMoments(focusedNode.items,focusedNode.path)}>Ver {focusedNode.items.length} {focusedNode.items.length===1?'momento':'momentos'} ↓</button>{focusedNode.depth<2&&!focusedNode.expanded&&<button onClick={()=>expand(focusedNode.id)}>Expandir +</button>}<button onClick={recenter}>Recentrar</button></div>}
-  <div className="demo-network-controls">{outside>0&&<button className="demo-undo" onClick={fitAll}>Ajustar vista · {outside} fuera</button>}{history.length>0&&<button className="demo-undo" onClick={back}>← Regresar</button>}<button aria-label="Alejar red" onClick={()=>{remember();setZoom(v=>Math.max(.35,v-.2));}}>−</button><button aria-label="Acercar red" onClick={()=>{remember();setZoom(v=>Math.min(2.5,v+.2));}}>+</button><button aria-label="Ajustar red a pantalla" onClick={fitAll}>⤢</button></div>
+  {history.length>0&&<button className="demo-history-back" onClick={back}>← Regresar</button>}
  </div>;
 }

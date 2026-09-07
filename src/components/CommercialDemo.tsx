@@ -8,8 +8,10 @@ import VolumeControl from './VolumeControl';
 import DemoMomentList from './DemoMomentList';
 import EasterEggMoments from './EasterEggMoments';
 import PixelMascot from './PixelMascot';
+import MascotVideo from './MascotVideo';
 
 export default function CommercialDemo() {
+ const [mascotVideo,setMascotVideo]=useState(false);
  const [navigationVersion,setNavigationVersion]=useState(0),[easterEgg,setEasterEgg]=useState(false);
  const [person,setPerson]=useState('keiko'),[query,setQuery]=useState(''),[input,setInput]=useState('Keiko');
  const [listPath,setListPath]=useState<string[]>([]),[activeVideo,setActiveVideo]=useState<string|null>(null);
@@ -38,6 +40,7 @@ export default function CommercialDemo() {
  }
  function search(q:string){const match=PEOPLE.find(p=>p.aliases.some(a=>a===normalizeDemo(q)));navigate(match?.id??'all',match?'':q);}
  function showPreview(next:DemoSelection) {
+  if(mascotVideo)return;
   next={...next,items:next.items.map(m=>focusDemoMoment(m,next.path?.at(-1)??next.label))};
   cancelHover();
   if(!next.expanded&&Date.now()<hoverBlockedUntil.current)return;
@@ -55,11 +58,12 @@ export default function CommercialDemo() {
     <nav aria-label="Explorar personajes">{PEOPLE.map(p=><button key={p.id} aria-pressed={person===p.id} onClick={()=>navigate(p.id)}>{p.name}</button>)}<button aria-pressed={person==='all'} onClick={()=>navigate('all')}>Todos</button><button className="demo-easter-egg-tag" aria-pressed={easterEgg} onClick={showEasterEgg}>Todo está acá</button></nav>
    </div>
    {connection&&<div className="demo-breadcrumb"><button onClick={()=>navigate(person,query)}>← {who?.name||query||'Archivo'}</button><span>/ {connection}</span></div>}
-   {results.length>0?<DemoNetwork key={JSON.stringify([person,query,connection,navigationVersion])} label={label} items={results} overview={person==='all'&&!query&&!connection} onPreview={showPreview} onLeave={cancelHover} onGraphChange={()=>{close();hoverBlockedUntil.current=Date.now()+650;}} onMoments={(items,path)=>showMoments(items.map(m=>m.id),path)} activeLabel={preview?.label??''} busy={!!preview||!!activeVideo}/>:<div className="demo-empty"><h2>No hay coincidencias en esta selección.</h2><p>Prueba con Keiko, RLA, Chibolín o Magaly.</p><button className="text-action" onClick={()=>navigate('keiko')}>Volver a la red ↗</button></div>}
+   {results.length>0?<DemoNetwork key={JSON.stringify([person,query,connection,navigationVersion])} label={label} items={results} overview={person==='all'&&!query&&!connection} onPreview={showPreview} onLeave={cancelHover} onGraphChange={()=>{close();hoverBlockedUntil.current=Date.now()+650;}} onMoments={(items,path)=>showMoments(items.map(m=>m.id),path)} activeLabel={preview?.label??''} busy={!!preview||!!activeVideo||mascotVideo}/>:<div className="demo-empty"><h2>No hay coincidencias en esta selección.</h2><p>Prueba con Keiko, RLA, Chibolín o Magaly.</p><button className="text-action" onClick={()=>navigate('keiko')}>Volver a la red ↗</button></div>}
    {results.length>0&&<div className="demo-hero-bottom"><p>Explora un concepto · clic para expandir</p><button onClick={()=>showMoments()} aria-label={'Ver '+results.length+' momentos'}>Ver {results.length} momentos <span>↓</span></button></div>}
   </section>
   <VolumeControl/>
-  <PixelMascot paused={!!preview||!!activeVideo}/>
+  <PixelMascot paused={!!preview||!!activeVideo||mascotVideo} onSecret={()=>{close();setActiveVideo(null);setMascotVideo(true);}}/>
+  {mascotVideo&&<MascotVideo onClose={()=>{setMascotVideo(false);hoverBlockedUntil.current=Date.now()+650;}}/>}
   {preview&&<DemoEvidence key={JSON.stringify([preview.label,preview.path])} selection={preview} onClose={close} onExpand={()=>setPreview({...preview,expanded:true})} onMoments={()=>showMoments(preview.items.map(m=>m.id),preview.path??[label,preview.label])}/>}
   {(results.length>0||easterEgg)&&<section ref={moments} tabIndex={-1} className="demo-results" aria-label="Momentos por episodio">
    <div className="demo-section-title"><div><p className="demo-kicker">{easterEgg?'4 momentos':<>Evidencia · {shown.length} {shown.length===1?'momento':'momentos'} · {new Set(shown.map(m=>m.episode.videoId)).size} {new Set(shown.map(m=>m.episode.videoId)).size===1?'episodio':'episodios'}</>}</p><h2>{easterEgg?'Todo está acá':listPath.length?listPath.join(' → '):label}</h2></div><button className="text-action" onClick={()=>{close();setActiveVideo(null);hero.current?.scrollIntoView({behavior:'instant'});}}>Volver a la red ↑</button></div>

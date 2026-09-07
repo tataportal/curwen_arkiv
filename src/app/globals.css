@@ -426,3 +426,21 @@ body:has(.demo-evidence.is-expanded) .pixel-mascot{visibility:hidden}
 @keyframes mascot-speech{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:640px){.pixel-mascot{left:49px;bottom:max(12px,env(safe-area-inset-bottom))}.mascot-trigger{width:58px;height:58px}.mascot-bubble{font-size:12px;left:0}}
 @media(prefers-reduced-motion:reduce){.mascot-idle,.pixel-mascot.is-speaking .mascot-reaction,.mascot-bubble>span{animation:none}}
+
+/* Corner controls and the mascot's hidden clip. */
+.volume-control.is-floating{left:auto;bottom:auto;right:max(18px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top))}
+.volume-control.is-floating .volume-panel{left:auto;right:0;bottom:auto;top:52px}
+.pixel-mascot{left:auto;right:max(22px,env(safe-area-inset-right))}
+.mascot-bubble{left:auto;right:15px}
+.mascot-bubble>span:after{left:auto;right:15px;box-shadow:-4px 4px #a8b797}
+.demo-history-back{position:absolute;left:24px;bottom:38px;z-index:4;padding:10px;font-size:11px;color:var(--secondary)}
+.mascot-video-dialog{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#000;color:#fff;overflow:hidden}
+.mascot-video-dialog[open]{display:grid;place-items:center}
+.mascot-video-dialog::backdrop{background:#000}
+.mascot-video-dialog video{display:block;width:100%;height:100%;max-height:100dvh;object-fit:contain}
+.mascot-video-close{position:absolute;top:max(14px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left));z-index:3;width:44px;height:44px;font-size:32px;background:#0009;color:#fff;border-radius:50%}
+.mascot-video-dialog .volume-control.is-inline{position:absolute;top:max(14px,env(safe-area-inset-top));right:max(18px,env(safe-area-inset-right));z-index:3;margin:0;background:#0009;border-radius:8px}
+.mascot-video-play,.mascot-video-error{position:absolute;z-index:2;padding:14px 20px;background:#111e;color:#fff;border:1px solid #555;border-radius:6px}
+.mascot-video-error a{text-decoration:underline}
+body:has(.mascot-video-dialog[open]) .pixel-mascot,body:has(.mascot-video-dialog[open]) .volume-control.is-floating{visibility:hidden}
+@media(max-width:640px){.volume-control.is-floating{left:auto;right:max(8px,env(safe-area-inset-right))}.pixel-mascot{left:auto;right:max(14px,env(safe-area-inset-right))}.mascot-bubble{left:auto;right:5px}.demo-history-back{left:12px;bottom:24px}}

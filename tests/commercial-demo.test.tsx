@@ -169,3 +169,14 @@ test('Todos is a navigation overview with four scoped people and no generic evid
  for(const n of graph.nodes.filter(n=>n.depth===2)){const person=n.id.split('|')[0].slice(7);assert(n.items.every(m=>m.person===person));assert(n.items.every(m=>m.topics.some(t=>t.label===n.label)));}
  assert(graph.nodes.every(n=>n.depth<=2));
 });
+
+import {registerMascotClick} from '../src/lib/mascot-clicks';
+test('mascot secret needs six recent clicks and resets after activation',()=>{
+ let clicks:number[]=[];
+ for(let i=0;i<5;i++){const next=registerMascotClick(clicks,i*300);assert.equal(next.triggered,false);clicks=next.clicks;}
+ const sixth=registerMascotClick(clicks,1500);assert.equal(sixth.triggered,true);assert.deepEqual(sixth.clicks,[]);
+ assert.equal(registerMascotClick(sixth.clicks,1600).triggered,false);
+ assert.equal(registerMascotClick(clicks,5000).triggered,false);
+ assert.equal(registerMascotClick([0,500,1000,1500,2000],3000).triggered,true);
+ assert.equal(registerMascotClick([0,500,1000,1500,2000],3001).triggered,false);
+});
