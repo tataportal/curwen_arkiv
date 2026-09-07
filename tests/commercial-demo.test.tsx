@@ -157,3 +157,15 @@ test('approved easter egg starts are exact and preserve the original source occu
   assert(standard.includes(`data-start-seconds="${Math.floor(occurrence.cue_start_seconds)-3}"`));
  }
 });
+
+test('Todos is a navigation overview with four scoped people and no generic evidence node',()=>{
+ const initial=initialDemoGraph('Todos los personajes',DEMO_MOMENTS,true);
+ assert.equal(initial.nodes.length,5);assert.equal(initial.nodes[0].navigationOnly,true);
+ assert.equal(expandDemoGraph(initial,'root',DEMO_MOMENTS),initial);
+ for(const person of PEOPLE){const n=initial.nodes.find(n=>n.id==='person:'+person.id)!;assert(n);assert.equal(n.items.length,6);assert(n.items.every(m=>m.person===person.id));}
+ let graph=initial;
+ for(const person of PEOPLE)graph=expandDemoGraph(graph,'person:'+person.id,DEMO_MOMENTS);
+ for(const e of graph.edges){const a=graph.nodes.find(n=>n.id===e.from)!,b=graph.nodes.find(n=>n.id===e.to)!;assert(e.momentIds.every(id=>a.items.some(m=>m.id===id)&&b.items.some(m=>m.id===id)));}
+ for(const n of graph.nodes.filter(n=>n.depth===2)){const person=n.id.split('|')[0].slice(7);assert(n.items.every(m=>m.person===person));assert(n.items.every(m=>m.topics.some(t=>t.label===n.label)));}
+ assert(graph.nodes.every(n=>n.depth<=2));
+});

@@ -1,10 +1,22 @@
-import {demoConnections,type DemoMoment} from './commercial-demo';
-export type DemoGraphNode={id:string;label:string;x:number;y:number;depth:number;items:DemoMoment[];expanded:boolean;path:string[]};
+import {demoConnections,PEOPLE,type DemoMoment} from './commercial-demo';
+export type DemoGraphNode={id:string;label:string;x:number;y:number;depth:number;items:DemoMoment[];expanded:boolean;path:string[];navigationOnly?:boolean};
 export type DemoGraphEdge={from:string;to:string;momentIds:string[]};
 export type DemoGraph={nodes:DemoGraphNode[];edges:DemoGraphEdge[]};
 const topicId=(label:string)=>'topic:'+label;
 
-export function initialDemoGraph(label:string,items:DemoMoment[]):DemoGraph {
+export function initialDemoGraph(label:string,items:DemoMoment[],overview=false):DemoGraph {
+ if(overview){
+  const pockets=[[-300,-120],[230,-190],[340,150],[-230,200]];
+  const nodes:DemoGraphNode[]=[{id:'root',label:'Todos los personajes',x:0,y:0,depth:0,items,expanded:true,path:[],navigationOnly:true}];
+  const edges:DemoGraphEdge[]=[];
+  PEOPLE.forEach((person,index)=>{const matches=items.filter(m=>m.person===person.id);if(!matches.length)return;
+   const id='person:'+person.id;
+   nodes.push({id,label:person.fullName,x:pockets[index][0],y:pockets[index][1],depth:1,items:matches,expanded:false,path:[person.fullName]});
+   edges.push({from:'root',to:id,momentIds:matches.map(m=>m.id)});
+  });
+  return {nodes,edges};
+ }
+
  const connections=demoConnections(items).filter(n=>n.label!==label).slice(0,8);
  const nodes:DemoGraphNode[]=[{id:'root',label,x:0,y:0,depth:0,items,expanded:false,path:[label]}];
  const edges:DemoGraphEdge[]=[];
@@ -31,12 +43,12 @@ export function initialDemoGraph(label:string,items:DemoMoment[]):DemoGraph {
 
 /** Add shared-moment associations without replacing the root or moving existing nodes. */
 export function expandDemoGraph(graph:DemoGraph,id:string,scope:DemoMoment[]):DemoGraph {
- const parent=graph.nodes.find(n=>n.id===id);if(!parent||parent.expanded||parent.depth>=2)return graph;
+ const parent=graph.nodes.find(n=>n.id===id);if(!parent||parent.navigationOnly||parent.expanded||parent.depth>=2)return graph;
  const nodes=graph.nodes.map(n=>({...n,expanded:n.id===id||n.expanded})),edges=[...graph.edges];
  const neighbours=demoConnections(parent.items).filter(n=>n.label!==parent.label&&n.label!==graph.nodes[0].label);
  const direction=parent.depth?Math.atan2(parent.y,parent.x):-Math.PI/2;
  neighbours.forEach((association,i)=>{
-  const targetId=topicId(association.label);
+  const targetId=(parent.id.startsWith('person:')?parent.id+'|':'')+topicId(association.label);
   if(!nodes.some(n=>n.id===targetId)){
    let x=0,y=0;
    // Choose an outward position with room for a label; retain every prior coordinate.
