@@ -19,3 +19,12 @@ export function demoGroups(moments:DemoMoment[]){
  for(const m of moments)groups.set(m.episode.videoId,[...(groups.get(m.episode.videoId)??[]),m]);
  return [...groups.values()].sort((a,b)=>(b[0].episode.publishedAt??'').localeCompare(a[0].episode.publishedAt??'')).map(group=>group.sort((a,b)=>a.occurrence.cue_start_seconds-b.occurrence.cue_start_seconds));
 }
+/** Stable Peru dates for static HTML and hydration; date-only metadata stays literal. */
+export function demoDate(value:string|null){
+ if(!value)return 'Fecha no disponible';
+ const dateOnly=/^\d{4}-\d{2}-\d{2}$/.test(value);
+ const instant=new Date(value).getTime();if(!Number.isFinite(instant))return 'Fecha no disponible';
+ const [year,month,day]=(dateOnly?value:new Date(instant-5*60*60*1000).toISOString().slice(0,10)).split('-');
+ const months=['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
+ return `${Number(day)} ${months[Number(month)-1]}. ${year}`;
+}

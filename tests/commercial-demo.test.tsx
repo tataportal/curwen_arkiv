@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import CommercialDemo from '../src/components/CommercialDemo';
-import {DEMO_MOMENTS,PEOPLE,demoSearch,demoGroups,normalizeDemo} from '../src/lib/commercial-demo';
+import {DEMO_MOMENTS,PEOPLE,demoSearch,demoGroups,normalizeDemo,demoDate} from '../src/lib/commercial-demo';
 import {buildYouTubeTimestampUrl,evidenceStartSeconds} from '../src/lib/utils';
 test('demo is capped per person and every summary and connection has transcript provenance',()=>{
  assert.equal(DEMO_MOMENTS.length,24);assert.equal(new Set(DEMO_MOMENTS.map(m=>m.id)).size,24);
@@ -35,4 +35,10 @@ test('demo renders usable results without API waits, experimental processing or 
  assert(html.includes('Copiar momento'));assert(html.includes('Comparar momentos'));
  assert(!html.includes('<iframe'));assert(!html.includes('Buscando'));assert(!html.includes('semantic-v2'));
  assert(html.includes('Mención '));assert(html.includes('histórico completo'));
+});
+
+test('dates match static HTML in UTC and client rendering in Peru',()=>{
+ const previous=process.env.TZ;
+ try {for(const zone of ['UTC','America/Lima','Asia/Tokyo']){process.env.TZ=zone;assert.equal(demoDate('2024-09-05'),'5 set. 2024');assert.equal(demoDate('2026-09-04T00:25:19+00:00'),'3 set. 2026');}}
+ finally{if(previous===undefined)delete process.env.TZ;else process.env.TZ=previous;}
 });
