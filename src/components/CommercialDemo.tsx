@@ -41,10 +41,10 @@ export default function CommercialDemo() {
  function showMoments(ids:string[]|null=null,path:string[]=[]){close();setActiveVideo(null);setListPath(path);setListFilter(ids);requestAnimationFrame(()=>{moments.current?.scrollIntoView({block:'start',behavior:'instant'});moments.current?.focus({preventScroll:true});});}
  return <div className="commercial-demo">
   <section className="demo-hero" ref={hero} aria-label="Explorar el archivo">
-   <header className="demo-header"><a href="?person=keiko" className="demo-wordmark">CURWEN <span>ARCHIVE</span></a><span>Demo · cobertura parcial</span></header>
+   <header className="demo-header"><a href="?person=keiko" className="demo-wordmark">CURWEN <span>ARKIV</span></a></header>
    <div className="demo-search-anchor">
-    <form role="search" className="search-field" onSubmit={e=>{e.preventDefault();search(input);}}><label htmlFor="demo-search" className="sr-only">Buscar en la demo</label><input id="demo-search" value={input} onChange={e=>setInput(e.target.value)} placeholder="Buscar en el archivo" maxLength={200}/><button aria-label="Buscar" type="submit" className="demo-search-submit">↵</button></form>
-    <nav aria-label="Personajes de la demo">{PEOPLE.map(p=><button key={p.id} aria-pressed={person===p.id} onClick={()=>navigate(p.id)}>{p.name}</button>)}<button aria-pressed={person==='all'} onClick={()=>navigate('all')}>Todos</button></nav>
+    <form role="search" className="search-field" onSubmit={e=>{e.preventDefault();search(input);}}><label htmlFor="demo-search" className="sr-only">Buscar en Curwen Arkiv</label><input id="demo-search" value={input} onChange={e=>setInput(e.target.value)} placeholder="Buscar en el archivo" maxLength={200}/><button aria-label="Buscar" type="submit" className="demo-search-submit">↵</button></form>
+    <nav aria-label="Explorar personajes">{PEOPLE.map(p=><button key={p.id} aria-pressed={person===p.id} onClick={()=>navigate(p.id)}>{p.name}</button>)}<button aria-pressed={person==='all'} onClick={()=>navigate('all')}>Todos</button></nav>
    </div>
    {connection&&<div className="demo-breadcrumb"><button onClick={()=>navigate(person,query)}>← {who?.name||query||'Archivo'}</button><span>/ {connection}</span></div>}
    {results.length>0?<DemoNetwork key={person+query+connection} label={label} items={results} onPreview={showPreview} onLeave={cancelHover} onGraphChange={()=>{close();hoverBlockedUntil.current=Date.now()+650;}} onMoments={(items,path)=>showMoments(items.map(m=>m.id),path)} activeLabel={preview?.label??''} busy={!!preview||!!activeVideo}/>:<div className="demo-empty"><h2>No hay coincidencias en esta selección.</h2><p>Prueba con Keiko, RLA, Chibolín o Magaly.</p><button className="text-action" onClick={()=>navigate('keiko')}>Volver a la red ↗</button></div>}
@@ -56,7 +56,7 @@ export default function CommercialDemo() {
    <div className="demo-section-title"><div><p className="demo-kicker">Evidencia · {shown.length} {shown.length===1?'momento':'momentos'} · {new Set(shown.map(m=>m.episode.videoId)).size} {new Set(shown.map(m=>m.episode.videoId)).size===1?'episodio':'episodios'}</p><h2>{listPath.length?listPath.join(' → '):label}</h2></div><button className="text-action" onClick={()=>{close();setActiveVideo(null);hero.current?.scrollIntoView({behavior:'instant'});}}>Volver a la red ↑</button></div>
    {listFilter&&<button className="text-action" onClick={()=>{setListFilter(null);setListPath([]);setActiveVideo(null);}}>Ver todos los momentos de {label} ×</button>}
    <DemoMomentList key={listPath.join("|")} items={shown} activeId={activeVideo} setActiveId={id=>{close();setActiveVideo(id);}}/>
-   <footer className="demo-footer"><p>Demo comercial · {DEMO_MOMENTS.length} momentos seleccionados · cobertura parcial.</p><p>El histórico completo, las actualizaciones automáticas y el mantenimiento se cotizan aparte.</p></footer>
+
   </section>
  </div>;
 }

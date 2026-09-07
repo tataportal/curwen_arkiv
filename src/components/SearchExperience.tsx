@@ -32,7 +32,7 @@ export default function SearchExperience(){
  const items=selection?.items??(data?resultMoments(data.episodes):[]),label=selection?.label??activeQuery;
  return <div className={'search-experience '+(activeQuery?'is-active':'')}>
   <section className="search-hero" ref={hero} aria-label="Explorar conceptos">
-   <h1 className="sr-only">Curwen Archive · explorar conversaciones</h1>
+   <h1 className="sr-only">Curwen Arkiv · explorar conversaciones</h1>
    {activeQuery&&<div className="home-network"><NetworkExplorer key={activeQuery} query={activeQuery} compact={belowMap} response={data} loading={loading} onMoments={(next,label)=>{setSelection({items:next,label});goToMoments();}}/></div>}
    <div className="search-anchor"><form role="search" className={'search-field '+(loading?'is-loading':'')} onSubmit={e=>{e.preventDefault();void search(query);input.current?.focus();window.scrollTo({top:0,behavior:'instant'});}}>
     <label htmlFor="archive-search" className="sr-only">Buscar un tema</label><input ref={input} id="archive-search" type="text" autoComplete="off" maxLength={500} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar un tema" enterKeyHint="search" onKeyDown={e=>{if(e.key==='Escape')newSearch();}}/>

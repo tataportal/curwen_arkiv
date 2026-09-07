@@ -378,3 +378,24 @@ body:has(.moments-dialog[open]) .volume-control.is-floating { visibility:hidden;
 .demo-result{scroll-margin-top:32px}.demo-section-title{padding-bottom:28px;border-bottom:1px solid var(--line)}
 @media(max-width:640px){.demo-node-actions{left:24px;right:24px;bottom:128px;font-size:10px;gap:14px;max-width:none}.demo-node-actions>span{flex-basis:100%;font-size:11px}.demo-moment-actions{gap:18px}.demo-network-viewport{inset:205px 12px 228px}.demo-hero{min-height:600px}.demo-section-title h2{font-size:21px}.demo-section-title>.text-action{font-size:10px}.demo-result{gap:9px}.demo-inline-video{margin-left:0}}
 .demo-network .demo-node{max-width:none}.demo-network .demo-node>span,.demo-network .demo-node.is-center>span{max-width:100%}
+/* Spatial atmosphere: irregular evidence pockets and foreground/background focal planes. */
+.demo-network-viewport{inset:178px 45px 135px}
+.demo-network .ambient-backdrop{background:radial-gradient(ellipse at 42% 52%,rgba(135,160,141,.16),transparent 49%),radial-gradient(ellipse at 74% 40%,rgba(117,136,156,.07),transparent 45%),radial-gradient(ellipse at 28% 73%,rgba(165,154,121,.055),transparent 50%);filter:blur(24px);animation:demo-depth-breath 19s ease-in-out infinite}
+@keyframes demo-depth-breath{0%,100%{opacity:.45;transform:scale(1) translate(-.4%,.3%)}50%{opacity:.9;transform:scale(1.08) translate(.5%,-.4%)}}
+.demo-network::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 52%,transparent 35%,#080a09a3 95%);z-index:1}
+.demo-network-plane{z-index:2}.demo-network-lines{overflow:visible}
+.demo-network-lines path{fill:none;stroke:#bfd0c5;stroke-width:.7;vector-effect:non-scaling-stroke;opacity:.15;transition:opacity .3s}
+.demo-network-lines path.is-branch{stroke:#b1c2c7;stroke-width:.6;opacity:.26}
+.demo-network .demo-node{gap:12px;letter-spacing:-.025em;z-index:3}
+.demo-network .demo-node[data-plane=anchor]{z-index:8}.demo-network .demo-node[data-plane=anchor]>span{color:#f2f1e8;text-shadow:0 0 45px #c6d5b82b;letter-spacing:-.045em}
+.demo-network .demo-node[data-plane=anchor] i{width:8px;height:8px;background:#e3edcf;box-shadow:0 0 9px #dbe7c54d,0 0 38px #d5e5b875,0 0 80px #c6dbb52e}
+.demo-network .demo-node[data-plane=foreground]>span{color:#d1d8cf;opacity:.95;text-shadow:0 0 28px #aec5b11c}.demo-network .demo-node[data-plane=foreground] i{width:5px;height:5px;box-shadow:0 0 16px #c9daba58}
+.demo-network .demo-node[data-plane=middle]>span{color:#a1afa8;opacity:.8}.demo-network .demo-node[data-plane=middle] i{opacity:.65}
+.demo-network .demo-node[data-plane=background]>span{color:#a0aea8;opacity:.6;filter:blur(.4px)}.demo-network .demo-node[data-plane=background] i{opacity:.4;filter:blur(.3px)}
+.demo-network .demo-node small{opacity:0;transition:opacity .2s;font-size:10px;padding-left:8px}
+.demo-network .demo-node:hover small,.demo-network .demo-node:focus-visible small{opacity:.7}
+.demo-network .demo-node:hover>span,.demo-network .demo-node:focus-visible>span,.demo-network .demo-node.is-active>span{color:#f0f5ed;opacity:1;filter:none;text-shadow:0 0 35px #c8dbbb50}
+.demo-network-plane:has(.demo-node:hover) path{opacity:.075}.demo-network.has-evidence-preview .demo-network-lines{opacity:.35}
+.demo-node-actions,.demo-network-controls{z-index:4}
+@media(max-width:640px){.demo-network-viewport{inset:198px 12px 228px}.demo-network .demo-node[data-plane=background]>span{filter:none;opacity:.72}}
+@media(prefers-reduced-motion:reduce){.demo-network .ambient-backdrop{animation:none!important;opacity:.45;transform:none}}

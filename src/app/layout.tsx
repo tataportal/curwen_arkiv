@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 export const metadata: Metadata = {
-  title: 'Curwen Archive',
+  title: 'Curwen Arkiv',
   description: 'Archivo público de las transmisiones de Curwen. Busca menciones y abre cada momento en YouTube.',
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

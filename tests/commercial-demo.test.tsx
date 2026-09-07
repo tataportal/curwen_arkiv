@@ -31,13 +31,13 @@ test('comparison uses one episode group and chronological source cues',()=>{
 });
 test('demo renders usable results without API waits, experimental processing or autoplay',()=>{
  const html=renderToStaticMarkup(<CommercialDemo/>);
- assert(html.includes('cobertura parcial'));assert(html.includes('Lo público y lo privado'));
+ assert(html.includes('ARKIV'));assert(!html.includes('cobertura parcial'));assert(!html.includes('Ambiente'));assert(html.includes('Lo público y lo privado'));
  assert(html.includes('Red de conceptos con evidencia'));assert(html.includes('Ver 6 momentos'));
  assert(html.indexOf('demo-results')>html.indexOf('demo-hero-bottom'));
  assert(!html.includes('Encuentra qué se dijo'));assert(!html.includes('demo-feature'));
  assert(html.includes('ambient-backdrop'));assert(html.includes('Ver video'));assert(html.includes('Ver contexto completo'));
  assert(!html.includes('<iframe'));assert(!html.includes('Buscando'));assert(!html.includes('semantic-v2'));
- assert(html.includes('data-cue-start-seconds'));assert(html.includes('histórico completo'));
+ assert(html.includes('data-cue-start-seconds'));assert(!html.includes('histórico completo'));
 });
 
 test('dates match static HTML in UTC and client rendering in Peru',()=>{
@@ -93,4 +93,14 @@ test('demo expansion stops at depth two and retains the exact path evidence',()=
  const deep=graph.nodes.filter(n=>n.depth===2);assert(deep.length>0);
  for(const node of deep){assert.equal(expandDemoGraph(graph,node.id,scope),graph);assert.equal(node.path.length,3);for(const m of node.items)assert(node.path.slice(1).every(label=>m.topics.some(t=>t.label===label)));}
  assert(graph.nodes.every(n=>n.depth<=2));
+});
+
+import {projectNode,connectionPath} from '../src/lib/network-presentation';
+test('perspective and lateral connections preserve evidence and the root anchor',()=>{
+ const graph=initialDemoGraph('Keiko Fujimori',demoSearch('keiko',''));
+ assert.deepEqual(projectNode(graph.nodes[0],0),{x:0,y:0,k:1});assert.deepEqual(projectNode(graph.nodes[0],80),{x:0,y:0,k:1});
+ assert(new Set(graph.nodes.slice(1).map(n=>Math.round(Math.hypot(n.x,n.y)))).size>4);
+ const lateral=graph.edges.filter(e=>e.from!=='root');assert(lateral.length>0);
+ for(const edge of lateral){const a=graph.nodes.find(n=>n.id===edge.from)!,b=graph.nodes.find(n=>n.id===edge.to)!;assert(edge.momentIds.every(id=>a.items.some(m=>m.id===id)&&b.items.some(m=>m.id===id)));assert(connectionPath(projectNode(a),projectNode(b),edge.from+edge.to).includes(' Q '));}
+ for(const n of graph.nodes){const p=projectNode(n,40);assert(Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.k>0);}
 });

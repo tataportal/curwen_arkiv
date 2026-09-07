@@ -8,10 +8,24 @@ export function initialDemoGraph(label:string,items:DemoMoment[]):DemoGraph {
  const connections=demoConnections(items).filter(n=>n.label!==label).slice(0,8);
  const nodes:DemoGraphNode[]=[{id:'root',label,x:0,y:0,depth:0,items,expanded:false,path:[label]}];
  const edges:DemoGraphEdge[]=[];
- connections.forEach((n,i)=>{const angle=-Math.PI/2+i*2*Math.PI/connections.length;
-  nodes.push({id:topicId(n.label),label:n.label,x:Math.cos(angle)*365,y:Math.sin(angle)*240,depth:1,items:n.items,expanded:false,path:[label,n.label]});
+ // Place concepts that share evidence in neighbouring pockets, not equal-angle spokes.
+ const remaining=new Set(connections.map((_,i)=>i)),order:number[]=[];
+ while(remaining.size){
+  const queue=[remaining.values().next().value!];remaining.delete(queue[0]);
+  while(queue.length){const index=queue.shift()!;order.push(index);
+   for(const other of remaining)if(connections[index].items.some(m=>connections[other].items.some(n=>n.id===m.id))){remaining.delete(other);queue.push(other);}
+  }
+ }
+ const pockets=[[-370,-135],[-250,-240],[130,-245],[360,-115],[235,100],[420,230],[-55,235],[-350,150]];
+ order.forEach((index,slot)=>{const n=connections[index],seed=[...n.label].reduce((v,c)=>v+c.charCodeAt(0),0),point=pockets[slot];
+  nodes.push({id:topicId(n.label),label:n.label,x:point[0]+seed%31-15,y:point[1]+seed%23-11,depth:1,items:n.items,expanded:false,path:[label,n.label]});
   edges.push({from:'root',to:topicId(n.label),momentIds:n.items.map(m=>m.id)});
  });
+ // Lateral links are co-mentions in the exact same curated moment, never inferred facts.
+ for(let i=1;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+  const shared=nodes[i].items.filter(m=>nodes[j].items.some(n=>n.id===m.id));
+  if(shared.length)edges.push({from:nodes[i].id,to:nodes[j].id,momentIds:shared.map(m=>m.id)});
+ }
  return {nodes,edges};
 }
 
