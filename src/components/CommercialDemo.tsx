@@ -1,37 +1,62 @@
 'use client';
-import {useEffect,useRef,useState} from 'react';
-import {DEMO_MOMENTS,PEOPLE,demoGroups,demoSearch,normalizeDemo,demoDate} from '@/lib/commercial-demo';
-import VideoPreview from './VideoPreview';
+
+import {useCallback,useEffect,useRef,useState} from 'react';
+import {DEMO_MOMENTS,PEOPLE,demoSearch,normalizeDemo} from '@/lib/commercial-demo';
+import DemoNetwork,{type DemoSelection} from './DemoNetwork';
+import DemoEvidence from './DemoEvidence';
 import VolumeControl from './VolumeControl';
-import {buildYouTubeTimestampUrl,evidenceStartSeconds,formatTimestamp} from '@/lib/utils';
-export default function CommercialDemo(){
- const [person,setPerson]=useState('keiko'),[query,setQuery]=useState(''),[input,setInput]=useState('');
- const [connection,setConnection]=useState('');
- const [selected,setSelected]=useState<string|null>(null),[playing,setPlaying]=useState(false),[context,setContext]=useState(false),[copied,setCopied]=useState(false);
- const detail=useRef<HTMLElement>(null);
- const results=demoSearch(person,query).filter(m=>!connection||m.topics.some(t=>t.label===connection)),current=results.find(m=>m.id===selected)??results[0];
- const who=PEOPLE.find(p=>p.id===person);
- function restore(){const p=new URLSearchParams(window.location.search),q=p.get('q')??'';const legacy=PEOPLE.find(x=>x.aliases.some(a=>a===normalizeDemo(q)));const selectedPerson=p.get('person');setPerson(PEOPLE.some(x=>x.id===selectedPerson)||selectedPerson==='all'?selectedPerson!:legacy?.id??(q?'all':'keiko'));setQuery(legacy?'':q);setInput(legacy?'':q);setSelected(p.get('moment'));setConnection(p.get('topic')??'');setPlaying(false);setContext(false);}
+import DemoMomentList from './DemoMomentList';
+
+export default function CommercialDemo() {
+ const [person,setPerson]=useState('keiko'),[query,setQuery]=useState(''),[input,setInput]=useState('Keiko');
+ const [listPath,setListPath]=useState<string[]>([]),[activeVideo,setActiveVideo]=useState<string|null>(null);
+ const [connection,setConnection]=useState(''),[preview,setPreview]=useState<DemoSelection|null>(null),[listFilter,setListFilter]=useState<string[]|null>(null);
+ const hover=useRef<ReturnType<typeof setTimeout>|null>(null),hoverBlockedUntil=useRef(0),hero=useRef<HTMLElement>(null),moments=useRef<HTMLElement>(null);
+ const results=demoSearch(person,query).filter(m=>!connection||m.topics.some(t=>t.label===connection));
+ const shown=listFilter?results.filter(m=>listFilter.includes(m.id)):results;
+ const who=PEOPLE.find(p=>p.id===person),label=connection||query||who?.fullName||'El archivo';
+ const close=useCallback(()=>{if(hover.current)clearTimeout(hover.current);setPreview(null);},[]);
+ const cancelHover=useCallback(()=>{if(hover.current)clearTimeout(hover.current);},[]);
+ useEffect(()=>()=>{if(hover.current)clearTimeout(hover.current);},[]);
+ function restore() {
+  const p=new URLSearchParams(window.location.search),q=p.get('q')??'',legacy=PEOPLE.find(x=>x.aliases.some(a=>a===normalizeDemo(q))),selectedPerson=p.get('person');
+  const nextPerson=PEOPLE.some(x=>x.id===selectedPerson)||selectedPerson==='all'?selectedPerson!:legacy?.id??(q?'all':'keiko');
+  setPerson(nextPerson);setQuery(legacy?'':q);setInput(legacy?.name??(q||PEOPLE.find(p=>p.id===nextPerson)?.name||''));setConnection(p.get('topic')??'');setListFilter(null);setListPath([]);setActiveVideo(null);close();
+  const shared=DEMO_MOMENTS.find(m=>m.id===p.get('moment'));
+  if(shared){setPerson(shared.person);setQuery('');setConnection('');setListFilter([shared.id]);setListPath([PEOPLE.find(p=>p.id===shared.person)?.name??'',shared.title]);setActiveVideo(shared.id);requestAnimationFrame(()=>moments.current?.scrollIntoView({behavior:'instant'}));}
+ }
  useEffect(()=>{restore();window.addEventListener('popstate',restore);return()=>window.removeEventListener('popstate',restore);},[]);
- function navigate(nextPerson:string,q='',id:string|null=null,topic=''){const url=new URL(window.location.href);url.search='';url.searchParams.set('person',nextPerson);if(q)url.searchParams.set('q',q);if(id)url.searchParams.set('moment',id);if(topic)url.searchParams.set('topic',topic);window.history.pushState(null,'',url);setPerson(nextPerson);setConnection(topic);setQuery(q);setInput(q);setSelected(id);setPlaying(false);setContext(false);setCopied(false);}
+ function navigate(nextPerson:string,q='',topic='') {
+  const url=new URL(window.location.href),release=url.searchParams.get('demo');url.search='';if(release)url.searchParams.set('demo',release);url.searchParams.set('person',nextPerson);if(q)url.searchParams.set('q',q);if(topic)url.searchParams.set('topic',topic);
+  hoverBlockedUntil.current=Date.now()+650;window.history.pushState(null,'',url);setPerson(nextPerson);setConnection(topic);setQuery(q);setInput(q||PEOPLE.find(p=>p.id===nextPerson)?.name||'');setListFilter(null);setListPath([]);setActiveVideo(null);close();
+ }
  function search(q:string){const match=PEOPLE.find(p=>p.aliases.some(a=>a===normalizeDemo(q)));navigate(match?.id??'all',match?'':q);}
- function open(id:string){navigate(person,query,id,connection);requestAnimationFrame(()=>detail.current?.scrollIntoView({block:'start',behavior:'instant'}));}
- async function copy(){if(!current)return;const url=new URL(window.location.href);url.search='';url.searchParams.set('person',current.person);url.searchParams.set('moment',current.id);try{await navigator.clipboard.writeText(url.toString());setCopied(true);}catch{setCopied(false);window.prompt('Copia el enlace del momento',url.toString());}}
- const topics=[...new Set(demoSearch(person,'').flatMap(m=>m.topics.map(t=>t.label)))].map(label=>({label,count:demoSearch(person,'').filter(m=>m.topics.some(t=>t.label===label)).length})).sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label));
+ function showPreview(next:DemoSelection) {
+  cancelHover();
+  if(!next.expanded&&Date.now()<hoverBlockedUntil.current)return;
+  if(next.expanded){setActiveVideo(null);setPreview(next);return;}
+  if(preview?.expanded||preview?.label===next.label)return;
+  hover.current=setTimeout(()=>{setActiveVideo(null);setPreview(next);},260);
+ }
+ function showMoments(ids:string[]|null=null,path:string[]=[]){close();setActiveVideo(null);setListPath(path);setListFilter(ids);requestAnimationFrame(()=>{moments.current?.scrollIntoView({block:'start',behavior:'instant'});moments.current?.focus({preventScroll:true});});}
  return <div className="commercial-demo">
-  <header className="demo-header"><a href="?person=keiko" className="demo-wordmark">CURWEN <span>ARCHIVE</span></a><span>Demo · cobertura parcial</span></header>
-  <section className="demo-intro"><p className="demo-kicker">Del archivo a la evidencia</p><h1>Encuentra qué se dijo. <span>Vuelve al momento.</span></h1><p>Una selección comentada de Keiko, RLA, Chibolín y Magaly. Busca un tema, cruza conexiones y comprueba el contexto en video.</p></section>
-  <div className="demo-tools"><nav aria-label="Personajes de la demo">{PEOPLE.map(p=><button key={p.id} aria-pressed={person===p.id} onClick={()=>navigate(p.id)}>{p.name}<small>{DEMO_MOMENTS.filter(m=>m.person===p.id).length}</small></button>)}<button aria-pressed={person==='all'} onClick={()=>navigate('all')}>Todos</button></nav>
-   <form role="search" onSubmit={e=>{e.preventDefault();search(input);}}><label htmlFor="demo-search" className="sr-only">Buscar en la demo</label><input id="demo-search" value={input} onChange={e=>setInput(e.target.value)} placeholder="Buscar en los 24 momentos" maxLength={200}/><button aria-label="Buscar" type="submit">↵</button></form>
-  </div>
-  <div className="demo-overview"><p role="status">{results.length} {results.length===1?'momento':'momentos'} · {new Set(results.map(m=>m.episode.videoId)).size} {new Set(results.map(m=>m.episode.videoId)).size===1?'episodio':'episodios'}{who?' · '+who.fullName:''}</p>{(query||connection)&&<button className="text-action" onClick={()=>navigate(person)}>Quitar filtro «{query||connection}» ×</button>}</div>
-  <section className="demo-connections" aria-label="Conexiones con evidencia"><span>Explorar conexiones</span><div>{topics.map(t=><button key={t.label} aria-pressed={connection===t.label} onClick={()=>navigate(person,'',null,connection===t.label?'':t.label)}>{t.label} <small>{t.count}</small></button>)}</div><p>Temas y personas mencionados en estos pasajes. Abre la transcripción para consultar la cita de cada conexión.</p></section>
-  {current?<section ref={detail} className="demo-feature" aria-label="Momento seleccionado" data-moment-id={current.id}>
-    <div className="demo-media">{playing?<VideoPreview continuous key={current.id} youtubeId={current.episode.videoId} occurrence={current.occurrence} title={current.title}/>:<button className="demo-play" onClick={()=>setPlaying(true)} aria-label={'Reproducir: '+current.title}><img src={'https://i.ytimg.com/vi/'+current.episode.videoId+'/hqdefault.jpg'} alt=""/><span>▷ Ver con contexto</span></button>}<div className="demo-video-caption"><span>Video desde {formatTimestamp(evidenceStartSeconds(current.occurrence.cue_start_seconds))} · hasta 3 s de contexto previo</span><VolumeControl floating={false}/></div></div>
-    <div className="demo-detail"><p className="demo-kicker">{PEOPLE.find(p=>p.id===current.person)?.name} · {demoDate(current.episode.publishedAt)}</p><h2>{current.title}</h2><a className="demo-timestamp" data-cue-start-seconds={current.occurrence.cue_start_seconds} href={buildYouTubeTimestampUrl(current.episode.videoId,evidenceStartSeconds(current.occurrence.cue_start_seconds))} target="_blank" rel="noopener noreferrer">Mención {formatTimestamp(current.occurrence.cue_start_seconds)} ↗</a><p className="demo-summary">{current.summary}</p><blockquote>«{current.quote}»</blockquote><div className="demo-detail-actions"><button className="text-action" aria-expanded={context} onClick={()=>setContext(!context)}>{context?'Cerrar transcripción':'Ver transcripción y conexiones'}</button><button className="text-action" onClick={()=>void copy()}>{copied?'Enlace copiado ✓':'Copiar momento ↗'}</button></div><p className="demo-source">{current.episode.title}</p></div>
-    {context&&<div className="demo-context"><h3>Por qué aparece cada conexión</h3>{current.topics.map(t=><p key={t.label}><strong>{t.label}</strong> · «{t.quote}»</p>)}<h3>Transcripción alrededor de la mención</h3><p className="demo-note">Fuente automática. El resumen describe el comentario en la fecha del episodio; no verifica por separado las afirmaciones de sus participantes.</p>{current.context.map((c,i)=><p key={i}><a href={buildYouTubeTimestampUrl(current.episode.videoId,evidenceStartSeconds(c.startSeconds))} target="_blank" rel="noopener noreferrer">{formatTimestamp(c.startSeconds)}</a> {c.text}</p>)}</div>}
-  </section>:<div className="demo-empty"><h2>No hay coincidencias en esta selección.</h2><p>Eso no significa que el tema no aparezca en el archivo completo.</p><button className="text-action" onClick={()=>navigate(person)}>Volver a los momentos seleccionados ↗</button></div>}
-  <section className="demo-results" aria-label="Momentos por episodio"><div className="demo-section-title"><h2>Comparar momentos</h2><span>Orden cronológico dentro de cada episodio</span></div>{demoGroups(results).map(group=><section className="demo-episode" key={group[0].episode.videoId}><header><a href={buildYouTubeTimestampUrl(group[0].episode.videoId,evidenceStartSeconds(group[0].occurrence.cue_start_seconds))} target="_blank" rel="noopener noreferrer"><img src={'https://i.ytimg.com/vi/'+group[0].episode.videoId+'/mqdefault.jpg'} alt="" loading="lazy"/><span>{group[0].episode.title}<small>{demoDate(group[0].episode.publishedAt)} · {group.length} {group.length===1?'momento':'momentos'}</small></span></a></header>{group.map(m=><button className="demo-result" key={m.id} aria-pressed={current?.id===m.id} onClick={()=>open(m.id)}><time>{formatTimestamp(m.occurrence.cue_start_seconds)}</time><span><strong>{m.title}</strong><span>{m.summary.split(/(?<=\.)\s+/)[0]}</span></span><span aria-hidden="true">↗</span></button>)}</section>)}</section>
-  <footer className="demo-footer"><p>Demo comercial · {DEMO_MOMENTS.length} momentos seleccionados · cobertura parcial.</p><p>El histórico completo, las actualizaciones automáticas y el mantenimiento se cotizan aparte.</p></footer>
+  <section className="demo-hero" ref={hero} aria-label="Explorar el archivo">
+   <header className="demo-header"><a href="?person=keiko" className="demo-wordmark">CURWEN <span>ARCHIVE</span></a><span>Demo · cobertura parcial</span></header>
+   <div className="demo-search-anchor">
+    <form role="search" className="search-field" onSubmit={e=>{e.preventDefault();search(input);}}><label htmlFor="demo-search" className="sr-only">Buscar en la demo</label><input id="demo-search" value={input} onChange={e=>setInput(e.target.value)} placeholder="Buscar en el archivo" maxLength={200}/><button aria-label="Buscar" type="submit" className="demo-search-submit">↵</button></form>
+    <nav aria-label="Personajes de la demo">{PEOPLE.map(p=><button key={p.id} aria-pressed={person===p.id} onClick={()=>navigate(p.id)}>{p.name}</button>)}<button aria-pressed={person==='all'} onClick={()=>navigate('all')}>Todos</button></nav>
+   </div>
+   {connection&&<div className="demo-breadcrumb"><button onClick={()=>navigate(person,query)}>← {who?.name||query||'Archivo'}</button><span>/ {connection}</span></div>}
+   {results.length>0?<DemoNetwork key={person+query+connection} label={label} items={results} onPreview={showPreview} onLeave={cancelHover} onGraphChange={()=>{close();hoverBlockedUntil.current=Date.now()+650;}} onMoments={(items,path)=>showMoments(items.map(m=>m.id),path)} activeLabel={preview?.label??''} busy={!!preview||!!activeVideo}/>:<div className="demo-empty"><h2>No hay coincidencias en esta selección.</h2><p>Prueba con Keiko, RLA, Chibolín o Magaly.</p><button className="text-action" onClick={()=>navigate('keiko')}>Volver a la red ↗</button></div>}
+   <div className="demo-hero-bottom"><p>Explora un concepto · clic para expandir</p><button onClick={()=>showMoments()} aria-label={'Ver '+results.length+' momentos'}>Ver {results.length} momentos <span>↓</span></button></div>
+  </section>
+  <VolumeControl/>
+  {preview&&<DemoEvidence key={preview.label} selection={preview} onClose={close} onExpand={()=>setPreview({...preview,expanded:true})} onMoments={()=>showMoments(preview.items.map(m=>m.id),preview.path??[label,preview.label])}/>}
+  <section ref={moments} tabIndex={-1} className="demo-results" aria-label="Momentos por episodio">
+   <div className="demo-section-title"><div><p className="demo-kicker">Evidencia · {shown.length} {shown.length===1?'momento':'momentos'} · {new Set(shown.map(m=>m.episode.videoId)).size} {new Set(shown.map(m=>m.episode.videoId)).size===1?'episodio':'episodios'}</p><h2>{listPath.length?listPath.join(' → '):label}</h2></div><button className="text-action" onClick={()=>{close();setActiveVideo(null);hero.current?.scrollIntoView({behavior:'instant'});}}>Volver a la red ↑</button></div>
+   {listFilter&&<button className="text-action" onClick={()=>{setListFilter(null);setListPath([]);setActiveVideo(null);}}>Ver todos los momentos de {label} ×</button>}
+   <DemoMomentList key={listPath.join("|")} items={shown} activeId={activeVideo} setActiveId={id=>{close();setActiveVideo(id);}}/>
+   <footer className="demo-footer"><p>Demo comercial · {DEMO_MOMENTS.length} momentos seleccionados · cobertura parcial.</p><p>El histórico completo, las actualizaciones automáticas y el mantenimiento se cotizan aparte.</p></footer>
+  </section>
  </div>;
 }

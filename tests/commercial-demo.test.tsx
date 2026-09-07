@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import CommercialDemo from '../src/components/CommercialDemo';
-import {DEMO_MOMENTS,PEOPLE,demoSearch,demoGroups,normalizeDemo,demoDate} from '../src/lib/commercial-demo';
+import {DEMO_MOMENTS,PEOPLE,demoSearch,demoGroups,normalizeDemo,demoDate,demoConnections} from '../src/lib/commercial-demo';
 import {buildYouTubeTimestampUrl,evidenceStartSeconds} from '../src/lib/utils';
 test('demo is capped per person and every summary and connection has transcript provenance',()=>{
  assert.equal(DEMO_MOMENTS.length,24);assert.equal(new Set(DEMO_MOMENTS.map(m=>m.id)).size,24);
@@ -32,13 +32,65 @@ test('comparison uses one episode group and chronological source cues',()=>{
 test('demo renders usable results without API waits, experimental processing or autoplay',()=>{
  const html=renderToStaticMarkup(<CommercialDemo/>);
  assert(html.includes('cobertura parcial'));assert(html.includes('Lo público y lo privado'));
- assert(html.includes('Copiar momento'));assert(html.includes('Comparar momentos'));
+ assert(html.includes('Red de conceptos con evidencia'));assert(html.includes('Ver 6 momentos'));
+ assert(html.indexOf('demo-results')>html.indexOf('demo-hero-bottom'));
+ assert(!html.includes('Encuentra qué se dijo'));assert(!html.includes('demo-feature'));
+ assert(html.includes('ambient-backdrop'));assert(html.includes('Ver video'));assert(html.includes('Ver contexto completo'));
  assert(!html.includes('<iframe'));assert(!html.includes('Buscando'));assert(!html.includes('semantic-v2'));
- assert(html.includes('Mención '));assert(html.includes('histórico completo'));
+ assert(html.includes('data-cue-start-seconds'));assert(html.includes('histórico completo'));
 });
 
 test('dates match static HTML in UTC and client rendering in Peru',()=>{
  const previous=process.env.TZ;
  try {for(const zone of ['UTC','America/Lima','Asia/Tokyo']){process.env.TZ=zone;assert.equal(demoDate('2024-09-05'),'5 set. 2024');assert.equal(demoDate('2026-09-04T00:25:19+00:00'),'3 set. 2026');}}
  finally{if(previous===undefined)delete process.env.TZ;else process.env.TZ=previous;}
+});
+
+test('expanding a concept only exposes neighbours with shared reviewed evidence',()=>{
+ for(const person of PEOPLE){
+  const scope=demoSearch(person.id,'');
+  for(const first of demoConnections(scope)){
+   assert(first.items.length>0);
+   for(const neighbour of demoConnections(first.items)){
+    assert(neighbour.items.length>0);
+    for(const m of neighbour.items){
+     assert(m.topics.some(t=>t.label===first.label));
+     assert(m.topics.some(t=>t.label===neighbour.label));
+     assert(scope.some(source=>source.id===m.id));
+    }
+   }
+  }
+ }
+ const keiko=demoConnections(demoSearch('keiko',''));
+ const cerimedo=keiko.find(n=>n.label==='Cerimedo')!;
+ assert.equal(cerimedo.items.length,2);
+ assert(demoConnections(cerimedo.items).some(n=>n.label==='Brad Parscale'));
+ assert(!demoConnections(cerimedo.items).some(n=>n.label==='ONPE'));
+});
+
+import {initialDemoGraph,expandDemoGraph} from '../src/lib/commercial-network';
+test('click expansion preserves the root, existing nodes and edges across multiple branches',()=>{
+ const scope=demoSearch('keiko','');
+ const initial=initialDemoGraph('Keiko Fujimori',scope);
+ const first=expandDemoGraph(initial,'topic:Cerimedo',scope);
+ assert(first.nodes.length>initial.nodes.length);
+ const second=expandDemoGraph(first,'topic:Fuerza Popular',scope);
+ for(const before of [initial,first]){
+  assert.equal(second.nodes[0].label,'Keiko Fujimori');
+  for(const node of before.nodes){const kept=second.nodes.find(n=>n.id===node.id)!;assert(kept);assert.equal(kept.x,node.x);assert.equal(kept.y,node.y);}
+  for(const edge of before.edges)assert(second.edges.some(e=>e.from===edge.from&&e.to===edge.to));
+ }
+ for(const edge of second.edges){
+  assert(edge.momentIds.length>0);const a=second.nodes.find(n=>n.id===edge.from)!,b=second.nodes.find(n=>n.id===edge.to)!;
+  assert(edge.momentIds.every(id=>a.items.some(m=>m.id===id)&&b.items.some(m=>m.id===id)));
+ }
+ assert.equal(expandDemoGraph(second,'topic:Cerimedo',scope),second);
+});
+
+test('demo expansion stops at depth two and retains the exact path evidence',()=>{
+ const scope=demoSearch('keiko','');let graph=initialDemoGraph('Keiko Fujimori',scope);
+ for(const node of [...graph.nodes].filter(n=>n.id!=='root'))graph=expandDemoGraph(graph,node.id,scope);
+ const deep=graph.nodes.filter(n=>n.depth===2);assert(deep.length>0);
+ for(const node of deep){assert.equal(expandDemoGraph(graph,node.id,scope),graph);assert.equal(node.path.length,3);for(const m of node.items)assert(node.path.slice(1).every(label=>m.topics.some(t=>t.label===label)));}
+ assert(graph.nodes.every(n=>n.depth<=2));
 });

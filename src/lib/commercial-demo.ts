@@ -28,3 +28,10 @@ export function demoDate(value:string|null){
  const months=['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
  return `${Number(day)} ${months[Number(month)-1]}. ${year}`;
 }
+
+/** Every visible edge is backed by a reviewed quotation in these selected moments. */
+export function demoConnections(moments:DemoMoment[]){
+ const labels=[...new Set(moments.flatMap(m=>m.topics.map(t=>t.label)))];
+ return labels.map(label=>({label,items:moments.filter(m=>m.topics.some(t=>t.label===label))}))
+  .sort((a,b)=>b.items.length-a.items.length||a.label.localeCompare(b.label,'es'));
+}
