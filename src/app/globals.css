@@ -451,3 +451,7 @@ body:has(.mascot-video-dialog[open]) .pixel-mascot,body:has(.mascot-video-dialog
 .demo-network .demo-node-actions button:hover{color:#f1f5ed}
 .demo-network .demo-node-actions button:focus-visible{outline:1px solid #8c9c83;outline-offset:4px}
 @media(max-width:640px){.demo-network .demo-node-actions{font-size:10px;gap:12px;padding:5px 10px}}
+
+.demo-header{justify-content:flex-start;align-items:center}
+.demo-merch{font-size:10px;color:var(--secondary);text-decoration:none;white-space:nowrap}
+.demo-merch:hover,.demo-merch:focus-visible{color:var(--text);text-decoration:underline;text-underline-offset:4px}

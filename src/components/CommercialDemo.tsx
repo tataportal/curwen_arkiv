@@ -49,10 +49,11 @@ export default function CommercialDemo() {
   hover.current=setTimeout(()=>{setActiveVideo(null);setPreview(next);},260);
  }
  function showMoments(ids:string[]|null=null,path:string[]=[]){setEasterEgg(false);close();setActiveVideo(null);setListPath(path);setListFilter(ids);requestAnimationFrame(()=>{moments.current?.scrollIntoView({block:'start',behavior:'instant'});moments.current?.focus({preventScroll:true});});}
+ function openMascotVideo(){close();setActiveVideo(null);setMascotVideo(true);}
  function showEasterEgg(){close();setActiveVideo(null);setEasterEgg(true);requestAnimationFrame(()=>{moments.current?.scrollIntoView({block:'start',behavior:'instant'});moments.current?.focus({preventScroll:true});});}
  return <div className="commercial-demo">
   <section className="demo-hero" ref={hero} aria-label="Explorar el archivo">
-   <header className="demo-header"><a href="?person=keiko" onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();navigate('keiko');}}} className="demo-wordmark">CURWEN <span>ARKIV</span></a></header>
+   <header className="demo-header"><a href="?person=keiko" onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();navigate('keiko');}}} className="demo-wordmark">CURWEN <span>ARKIV</span></a><a className="demo-merch" href={(process.env.NEXT_PUBLIC_ASSET_BASE_PATH||'')+'/video/pelaogood-v1.mp4'} aria-haspopup="dialog" onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();openMascotVideo();}}}>Merch ↗</a></header>
    <div className="demo-search-anchor">
     <form role="search" className="search-field" onSubmit={e=>{e.preventDefault();search(input);}}><label htmlFor="demo-search" className="sr-only">Buscar en Curwen Arkiv</label><input id="demo-search" value={input} onChange={e=>setInput(e.target.value)} placeholder="Buscar en el archivo" maxLength={200}/><button aria-label="Buscar" type="submit" className="demo-search-submit">↵</button></form>
     <nav aria-label="Explorar personajes">{PEOPLE.map(p=><button key={p.id} aria-pressed={person===p.id} onClick={()=>navigate(p.id)}>{p.name}</button>)}<button aria-pressed={person==='all'} onClick={()=>navigate('all')}>Todos</button><button className="demo-easter-egg-tag" aria-pressed={easterEgg} onClick={showEasterEgg}>Todo está acá</button></nav>
@@ -62,7 +63,7 @@ export default function CommercialDemo() {
    {results.length>0&&<div className="demo-hero-bottom"><p>Explora un concepto · clic para expandir</p><button onClick={()=>showMoments()} aria-label={'Ver '+results.length+(results.length===1?' momento':' momentos')}>Ver {results.length} {results.length===1?'momento':'momentos'} <span>↓</span></button></div>}
   </section>
   <VolumeControl/>
-  <PixelMascot paused={!!preview||!!activeVideo||mascotVideo} onSecret={()=>{close();setActiveVideo(null);setMascotVideo(true);}}/>
+  <PixelMascot paused={!!preview||!!activeVideo||mascotVideo} onSecret={openMascotVideo}/>
   {mascotVideo&&<MascotVideo onClose={()=>{setMascotVideo(false);hoverBlockedUntil.current=Date.now()+650;}}/>}
   {preview&&<DemoEvidence key={JSON.stringify([preview.label,preview.path])} selection={preview} onClose={close} onExpand={()=>setPreview({...preview,expanded:true})} onMoments={()=>showMoments(preview.items.map(m=>m.id),preview.path??[label,preview.label])}/>}
   {(results.length>0||easterEgg)&&<section ref={moments} tabIndex={-1} className="demo-results" aria-label="Momentos por episodio">
