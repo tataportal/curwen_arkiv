@@ -105,6 +105,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
   function show(element:HTMLButtonElement,node?:PositionedNode,edge?:Relationship,pinned=false,delay=false){
     if(compact||list)return;clearTimers();returnFocus.current=element;
     const next=selection(element,node,edge,pinned);
+    if(!next.items.length)return;
     if(popup?.id===next.id){if(pinned&&!popup.pinned)setPopup({...popup,pinned:true});return;}
     if(delay)enterTimer.current=setTimeout(()=>{clearTimers();setPopup(next);},220);else setPopup(next);
   }
@@ -130,6 +131,7 @@ export default function NetworkExplorer({query,compact=false,response,loading=fa
       </div>
     </div>
     {nodes.length>1&&<div className="network-controls"><button className="icon-button" aria-label="Alejar mapa" disabled={zoom<=.25} onClick={()=>{close();setZoom(z=>Math.max(.25,z-.15));}}><Minus size={15}/></button><button className="icon-button" aria-label="Acercar mapa" disabled={zoom>=1.6} onClick={()=>{close();setZoom(z=>Math.min(1.6,z+.15));}}><Plus size={15}/></button><button className="icon-button" aria-label="Centrar mapa" onClick={()=>{close();fit();}}><Maximize2 size={14}/></button></div>}
+    {status==='loading'&&!loading&&<p className="network-status" role="status">Buscando conceptos relacionados…</p>}
     {status==='error'&&<p className="network-status">No se pudo consultar esta rama. Vuelve a buscar.</p>}
     {status==='empty'&&!popup&&<p className="network-status">Sin conceptos relacionados con evidencia suficiente.</p>}
     {popup&&!list&&!compact&&<QuickEvidence pinned={popup.pinned} anchor={popup.anchor} label={popup.label} items={popup.items} onClose={close} onEnter={clearTimers} onLeave={scheduleClose} onMoments={()=>{clearTimers();if(onMoments){onMoments(popup.items,popup.label);setPopup(null);}else setList(popup);}} onExplore={popup.node?()=>void expand(popup.node!):undefined}/>}

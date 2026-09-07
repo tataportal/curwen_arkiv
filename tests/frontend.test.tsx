@@ -16,6 +16,8 @@ test('initial home contains only the search instrument and accessible hidden tex
   assert(!html.includes('<nav'));
   assert(!html.includes('network-explorer'));
   assert(!html.includes('CURWEN ARCHIVE'));
+  assert(html.includes('Buscando menciones de'));
+  assert(!html.includes('class="sr-only">Buscando'));
 });
 test('timestamp links use the whole second containing the cue for YouTube compatibility', () => {
   const html = renderToStaticMarkup(<TimestampLink youtubeId="testvideo01" seconds={1112.9} />);

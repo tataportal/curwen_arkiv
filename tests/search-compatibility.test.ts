@@ -37,3 +37,19 @@ test('paths require both concepts in the same moment context and keep source occ
  assert.equal(paths[0].edges[0].evidence[0].occurrence.matchedText,'Keiko.');
  assert.equal(resultEvidence(e,e.moments[0])[0].seconds,12.34);
 });
+
+test('search forwards caller cancellation and bounds a stalled response body',async()=>{
+ const originalFetch=globalThis.fetch,originalTimeout=AbortSignal.timeout;
+ const deadline=new AbortController();let milliseconds=0;
+ AbortSignal.timeout=(ms:number)=>{milliseconds=ms;return deadline.signal;};
+ globalThis.fetch=async(_url,init)=>new Response(new ReadableStream({start(controller){init!.signal!.addEventListener('abort',()=>controller.error(init!.signal!.reason),{once:true});}}));
+ try{
+  const pending=searchTranscript('Keiko');
+  await new Promise(resolve=>setImmediate(resolve));
+  deadline.abort(new DOMException('Search timed out','TimeoutError'));
+  await assert.rejects(pending,{name:'TimeoutError'});assert.equal(milliseconds,30_000);
+  const caller=new AbortController();caller.abort(new DOMException('New query','AbortError'));
+  globalThis.fetch=async(_url,init)=>{init!.signal!.throwIfAborted();throw Error('Should abort');};
+  await assert.rejects(searchTranscript('Vacunas',1,20,caller.signal),{name:'AbortError'});
+ }finally{globalThis.fetch=originalFetch;AbortSignal.timeout=originalTimeout;}
+});

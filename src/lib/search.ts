@@ -26,7 +26,9 @@ export async function searchTranscript(query:string,page=1,pageSize=20,signal?:A
   pagination(page,pageSize);
   const base=process.env.NEXT_PUBLIC_RETRIEVAL_API_BASE;
   if(!base)throw new ArchiveError('Falta conectar el API de retrieval.');
-  const response=await fetch(base.replace(/\/$/,'')+'/api/search?q='+encodeURIComponent(query)+'&page='+page+'&page_size='+pageSize,{signal});
+  const timeout=AbortSignal.timeout(30_000);
+  const requestSignal=signal?AbortSignal.any([signal,timeout]):timeout;
+  const response=await fetch(base.replace(/\/$/,'')+'/api/search?q='+encodeURIComponent(query)+'&page='+page+'&page_size='+pageSize,{signal:requestSignal});
   if(!response.ok)throw new ArchiveError('No se pudo consultar el archivo.');
   const data=await response.json();
   validateRetrievalResponse(data);return data;
