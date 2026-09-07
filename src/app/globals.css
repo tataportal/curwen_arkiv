@@ -444,3 +444,10 @@ body:has(.demo-evidence.is-expanded) .pixel-mascot{visibility:hidden}
 .mascot-video-error a{text-decoration:underline}
 body:has(.mascot-video-dialog[open]) .pixel-mascot,body:has(.mascot-video-dialog[open]) .volume-control.is-floating{visibility:hidden}
 @media(max-width:640px){.volume-control.is-floating{left:auto;right:max(8px,env(safe-area-inset-right))}.pixel-mascot{left:auto;right:max(14px,env(safe-area-inset-right))}.mascot-bubble{left:auto;right:5px}.demo-history-back{left:12px;bottom:24px}}
+
+/* Selected-node actions belong to the node, never to a screen corner. */
+.demo-network .demo-node-actions{position:absolute;right:auto;bottom:auto;transform:translateX(-50%);display:flex;justify-content:center;gap:16px;width:max-content;padding:6px 13px;font-size:11px;line-height:1.4;background:rgba(12,16,13,.88);border:1px solid rgba(164,185,160,.13);border-radius:5px;backdrop-filter:blur(12px);cursor:default;z-index:5}
+.demo-network .demo-node-actions button{white-space:nowrap;padding:8px 0;color:#bbc7b4}
+.demo-network .demo-node-actions button:hover{color:#f1f5ed}
+.demo-network .demo-node-actions button:focus-visible{outline:1px solid #8c9c83;outline-offset:4px}
+@media(max-width:640px){.demo-network .demo-node-actions{font-size:10px;gap:12px;padding:5px 10px}}

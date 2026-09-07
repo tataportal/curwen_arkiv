@@ -59,7 +59,7 @@ export default function CommercialDemo() {
    </div>
    {connection&&<div className="demo-breadcrumb"><button onClick={()=>navigate(person,query)}>← {who?.name||query||'Archivo'}</button><span>/ {connection}</span></div>}
    {results.length>0?<DemoNetwork key={JSON.stringify([person,query,connection,navigationVersion])} label={label} items={results} overview={person==='all'&&!query&&!connection} onPreview={showPreview} onLeave={cancelHover} onGraphChange={()=>{close();hoverBlockedUntil.current=Date.now()+650;}} onMoments={(items,path)=>showMoments(items.map(m=>m.id),path)} activeLabel={preview?.label??''} busy={!!preview||!!activeVideo||mascotVideo}/>:<div className="demo-empty"><h2>No hay coincidencias en esta selección.</h2><p>Prueba con Keiko, RLA, Chibolín o Magaly.</p><button className="text-action" onClick={()=>navigate('keiko')}>Volver a la red ↗</button></div>}
-   {results.length>0&&<div className="demo-hero-bottom"><p>Explora un concepto · clic para expandir</p><button onClick={()=>showMoments()} aria-label={'Ver '+results.length+' momentos'}>Ver {results.length} momentos <span>↓</span></button></div>}
+   {results.length>0&&<div className="demo-hero-bottom"><p>Explora un concepto · clic para expandir</p><button onClick={()=>showMoments()} aria-label={'Ver '+results.length+(results.length===1?' momento':' momentos')}>Ver {results.length} {results.length===1?'momento':'momentos'} <span>↓</span></button></div>}
   </section>
   <VolumeControl/>
   <PixelMascot paused={!!preview||!!activeVideo||mascotVideo} onSecret={()=>{close();setActiveVideo(null);setMascotVideo(true);}}/>

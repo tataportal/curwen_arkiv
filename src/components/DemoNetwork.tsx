@@ -35,19 +35,32 @@ export default function DemoNetwork({label,items,overview=false,onPreview,onLeav
   frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame);
  },[busy,graph]);
  function remember(){setHistory(h=>[...h,{graph,pan,focused}]);}
- function expand(id:string){onGraphChange();const next=expandDemoGraph(graph,id,items);if(next!==graph){remember();setGraph(next);}setFocused(id);}
+ function expand(id:string){onGraphChange();const next=expandDemoGraph(graph,id,items);if(next!==graph){if(next.nodes.length!==graph.nodes.length||next.edges.length!==graph.edges.length)remember();setGraph(next);}setFocused(id);}
  function recenter(){if(!focusedNode)return;onGraphChange();remember();setPan({x:-projectNode(focusedNode).x*scale,y:-projectNode(focusedNode).y*scale});}
  function back(){const prior=history[history.length-1];if(!prior)return;onGraphChange();setGraph(prior.graph);setPan(prior.pan);setFocused(prior.focused);setHistory(history.slice(0,-1));}
 
+ const actionNode=focusedNode??(history.length?graph.nodes[0]:undefined);
+ const projected=actionNode?projectNode(actionNode,motionTime.current/1000):{x:0,y:0};
+ const offset={x:projected.x*scale+pan.x,y:projected.y*scale+pan.y};
+ const menuWidth=Math.min(360,size.width-24);
+ const menuLeft=Math.max(menuWidth/2+12,Math.min(size.width-menuWidth/2-12,size.width/2+offset.x));
+ const nodeTop=size.height/2+offset.y;
+ const menuTop=Math.max(8,Math.min(size.height-72,nodeTop+(nodeTop+125>size.height?-72:65)));
+ const isCentered=Math.hypot(offset.x,offset.y)<10;
+ const actions=actionNode&&!busy&&(actionNode.depth>0||!isCentered||history.length>0)&&<div className="demo-node-actions" role="toolbar" aria-label={'Acciones de '+actionNode.label} style={{left:menuLeft,top:menuTop,maxWidth:size.width-24}}>
+  {!actionNode.navigationOnly&&actionNode.depth>0&&<button onClick={()=>onMoments(actionNode.items,actionNode.path)}>Ver {actionNode.items.length} {actionNode.items.length===1?'momento':'momentos'} ↓</button>}
+  {focusedNode&&!isCentered&&<button onClick={recenter}>Recentrar</button>}
+  {history.length>0&&<button onClick={back}>← Regresar</button>}
+ </div>;
  return <div className={'demo-network'+(busy?' has-evidence-preview':'')} data-idle-paused={busy}>
   <AmbientBackdrop controls={false}/>
-  <div ref={viewport} className="demo-network-viewport" onPointerDown={e=>{if((e.target as HTMLElement).closest('button')||e.button!==0)return;remember();pointer.current={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(pointer.current)setPan({x:pointer.current.px+e.clientX-pointer.current.x,y:pointer.current.py+e.clientY-pointer.current.y});}} onPointerUp={()=>{pointer.current=null;}} onPointerCancel={()=>{pointer.current=null;}}>
+  <div ref={viewport} className="demo-network-viewport" onPointerDown={e=>{if((e.target as HTMLElement).closest('button,[role=toolbar]')||e.button!==0)return;remember();pointer.current={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(pointer.current)setPan({x:pointer.current.px+e.clientX-pointer.current.x,y:pointer.current.py+e.clientY-pointer.current.y});}} onPointerUp={()=>{pointer.current=null;}} onPointerCancel={()=>{pointer.current=null;}}>
    <div ref={plane} className="demo-network-plane" style={{transform:`translate(${pan.x}px,${pan.y}px) scale(${scale})`}} aria-label="Red de conceptos con evidencia">
     <svg className="demo-network-lines" viewBox="-2000 -1600 4000 3200" aria-hidden="true">{graph.edges.map(edge=>{const a=graph.nodes.find(n=>n.id===edge.from)!,b=graph.nodes.find(n=>n.id===edge.to)!;return <path data-connection key={edge.from+'|'+edge.to} d={connectionPath(projectNode(a),projectNode(b),edge.from+edge.to)} className={edge.from==='root'?'':'is-branch'} data-from={a.label} data-to={b.label} data-evidence-count={edge.momentIds.length}/>;})}</svg>
     {graph.nodes.map(node=><button key={node.id} className={'demo-node'+(node.depth===0?' is-center':node.depth===1?' is-near':' is-far')+(activeLabel===node.label?' is-active':'')+(focused===node.id?' is-selected':'')} style={{left:projectNode(node).x,top:projectNode(node).y,width:(node.depth===0?290:190)/scale,fontSize:Math.min(85,nodeTypeSize(node)*projectNode(node).k/scale)}} disabled={node.navigationOnly} aria-label={node.label+' · '+node.items.length+(node.items.length===1?' momento':' momentos')} aria-expanded={!node.navigationOnly&&node.depth<2?node.expanded:undefined} title={node.navigationOnly?'Explora uno de los cuatro personajes':node.depth===2?'Nivel 2 · ver momentos':node.expanded?'Asociaciones desplegadas':'Expandir asociaciones'} data-plane={nodePlane(node)} data-node-id={node.id} data-depth={node.depth} onPointerEnter={e=>{if(!node.navigationOnly&&e.pointerType==='mouse')onPreview({label:node.label,items:node.items,anchor:e.currentTarget.getBoundingClientRect().toJSON(),expanded:false,path:node.path});}} onPointerLeave={onLeave} onFocus={e=>{if(!node.navigationOnly&&e.currentTarget.matches(':focus-visible'))onPreview({label:node.label,items:node.items,anchor:e.currentTarget.getBoundingClientRect().toJSON(),expanded:false,path:node.path});}} onClick={()=>expand(node.id)}><i/><span>{node.label}{node.depth>0&&node.depth<2&&<small>{node.expanded?'':'+'}</small>}</span></button>)}
    </div>
+   {actions}
   </div>
-  {focusedNode&&<div className="demo-node-actions"><span>{focusedNode.label}{focusedNode.depth===2?' · nivel 2':''}</span><button onClick={()=>onMoments(focusedNode.items,focusedNode.path)}>Ver {focusedNode.items.length} {focusedNode.items.length===1?'momento':'momentos'} ↓</button>{focusedNode.depth<2&&!focusedNode.expanded&&<button onClick={()=>expand(focusedNode.id)}>Expandir +</button>}<button onClick={recenter}>Recentrar</button></div>}
-  {history.length>0&&<button className="demo-history-back" onClick={back}>← Regresar</button>}
+
  </div>;
 }
