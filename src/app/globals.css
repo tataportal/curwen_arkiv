@@ -400,3 +400,10 @@ body:has(.moments-dialog[open]) .volume-control.is-floating { visibility:hidden;
 @media(max-width:640px){.demo-network-viewport{inset:198px 12px 228px}.demo-network .demo-node[data-plane=background]>span{filter:none;opacity:.72}}
 @media(prefers-reduced-motion:reduce){.demo-network .ambient-backdrop{animation:none!important;opacity:.45;transform:none}}
 .demo-connection-quote{margin:6px 0 20px;padding:12px 0 12px 18px;border-left:1px solid #aabda773}.demo-connection-quote>span{font-size:10px;color:var(--secondary)}.demo-connection-quote blockquote{margin:8px 0;font-size:16px;color:#d1dbca;line-height:1.6}.demo-connection-quote details{margin-top:10px}.demo-connection-quote summary{font-size:10px;color:var(--secondary);cursor:pointer}.demo-connection-quote details p{font-size:12px;margin-top:12px}
+
+/* A quiet shortcut beside the existing subjects. */
+.demo-search-anchor nav{flex-wrap:wrap}
+.demo-search-anchor nav .demo-easter-egg-tag{margin-left:8px;padding-left:18px;border-left:1px solid rgba(185,200,175,.2);font-style:italic;color:#acb9a3}
+.demo-search-anchor nav .demo-easter-egg-tag:hover,.demo-search-anchor nav .demo-easter-egg-tag:focus-visible{color:#edf4e7}
+.demo-egg-transcript{margin-top:16px;color:#a1aa9c;font-size:13px}
+.demo-egg-transcript summary{cursor:pointer}

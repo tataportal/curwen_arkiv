@@ -5,13 +5,14 @@ import {loadYouTubeAPI,type YouTubePlayer} from '@/lib/youtube-api';
 import {applyPreviewVolume,getPreviewVolume,subscribePreviewVolume} from '@/lib/preview-volume';
 import {buildYouTubeTimestampUrl,evidenceStartSeconds,formatTimestamp} from '@/lib/utils';
 export const PREVIEW_SECONDS=8;
-export default function VideoPreview({youtubeId,occurrence,title,continuous=false}:{youtubeId:string;occurrence:SearchOccurrence;title:string;continuous?:boolean}) {
+export default function VideoPreview({youtubeId,occurrence,title,continuous=false,contextStartSeconds}:{youtubeId:string;occurrence:SearchOccurrence;title:string;continuous?:boolean;contextStartSeconds?:number}) {
   const host=useRef<HTMLDivElement>(null),player=useRef<YouTubePlayer|null>(null);
   const [state,setState]=useState('loading'),[observedStart,setObservedStart]=useState<number|null>(null);
   const firstPlaying=useRef(false);
   const [muted,setMuted]=useState<boolean|null>(null),[actualVolume,setActualVolume]=useState<number|null>(null);
   const cue=occurrence.cue_start_seconds;
-  const start=evidenceStartSeconds(cue);
+  const start=contextStartSeconds??evidenceStartSeconds(cue);
+  if(!Number.isFinite(start)||start<0||start>cue)throw new Error('Preview context must start at or before its source cue');
   if(!Number.isFinite(cue)||cue<0||occurrence.videoId!==youtubeId)throw new Error('Preview requires a valid cue occurrence');
   const play=()=>{setState('playing');if(player.current)applyPreviewVolume(player.current);player.current?.loadVideoById({videoId:youtubeId,startSeconds:start,...(continuous?{}:{endSeconds:start+PREVIEW_SECONDS})});};
   useEffect(()=>{

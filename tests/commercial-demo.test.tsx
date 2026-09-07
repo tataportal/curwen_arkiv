@@ -138,3 +138,22 @@ test('all 68 curated topic connections have a dedicated source anchor, with nonl
  const html=renderToStaticMarkup(<DemoMomentList items={[security]} activeId={null} setActiveId={()=>{}}/>);
  assert(html.includes('Cita sobre '));assert(!html.includes('Mención de '));
 });
+
+import EasterEggMoments from '../src/components/EasterEggMoments';
+import VideoPreview from '../src/components/VideoPreview';
+import easterEggClips from '../src/data/easter-egg-clips.json';
+import type {SearchOccurrence} from '../src/lib/retrieval/model';
+test('approved easter egg starts are exact and preserve the original source occurrences',()=>{
+ assert.deepEqual(easterEggClips.map(c=>c.playbackStart),[5165,2885,2783,5240]);
+ assert.deepEqual(easterEggClips.map(c=>c.occurrence.cue_start_seconds),[5175.719,2894.96,2786.96,5243.28]);
+ const list=renderToStaticMarkup(<EasterEggMoments activeId={null} setActiveId={()=>{}}/>);
+ assert.equal((list.match(/data-easter-egg-id=/g)||[]).length,4);assert(!list.includes('iframe'));
+ for(const c of easterEggClips){
+  const occurrence=c.occurrence as SearchOccurrence;
+  assert(list.includes(`t=${c.playbackStart}s`));
+  const curated=renderToStaticMarkup(<VideoPreview youtubeId={c.episode.videoId} occurrence={occurrence} title={c.title} contextStartSeconds={c.playbackStart} continuous/>);
+  assert(curated.includes(`data-start-seconds="${c.playbackStart}"`));
+  const standard=renderToStaticMarkup(<VideoPreview youtubeId={c.episode.videoId} occurrence={occurrence} title={c.title}/>);
+  assert(standard.includes(`data-start-seconds="${Math.floor(occurrence.cue_start_seconds)-3}"`));
+ }
+});

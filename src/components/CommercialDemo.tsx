@@ -6,9 +6,10 @@ import DemoNetwork,{type DemoSelection} from './DemoNetwork';
 import DemoEvidence from './DemoEvidence';
 import VolumeControl from './VolumeControl';
 import DemoMomentList from './DemoMomentList';
+import EasterEggMoments from './EasterEggMoments';
 
 export default function CommercialDemo() {
- const [navigationVersion,setNavigationVersion]=useState(0);
+ const [navigationVersion,setNavigationVersion]=useState(0),[easterEgg,setEasterEgg]=useState(false);
  const [person,setPerson]=useState('keiko'),[query,setQuery]=useState(''),[input,setInput]=useState('Keiko');
  const [listPath,setListPath]=useState<string[]>([]),[activeVideo,setActiveVideo]=useState<string|null>(null);
  const [connection,setConnection]=useState(''),[preview,setPreview]=useState<DemoSelection|null>(null),[listFilter,setListFilter]=useState<string[]|null>(null);
@@ -20,6 +21,7 @@ export default function CommercialDemo() {
  const cancelHover=useCallback(()=>{if(hover.current)clearTimeout(hover.current);},[]);
  useEffect(()=>()=>{if(hover.current)clearTimeout(hover.current);},[]);
  function restore() {
+  setEasterEgg(false);
   const p=new URLSearchParams(window.location.search),q=p.get('q')??'',legacy=PEOPLE.find(x=>x.aliases.some(a=>a===normalizeDemo(q))),selectedPerson=p.get('person');
   const nextPerson=PEOPLE.some(x=>x.id===selectedPerson)||selectedPerson==='all'?selectedPerson!:legacy?.id??(q?'all':'keiko');
   setPerson(nextPerson);setQuery(legacy?'':q);setInput(legacy?.name??(q||PEOPLE.find(p=>p.id===nextPerson)?.name||''));setConnection(p.get('topic')??'');setListFilter(null);setListPath([]);setActiveVideo(null);close();
@@ -28,6 +30,7 @@ export default function CommercialDemo() {
  }
  useEffect(()=>{restore();window.addEventListener('popstate',restore);return()=>window.removeEventListener('popstate',restore);},[]);
  function navigate(nextPerson:string,q='',topic='') {
+  setEasterEgg(false);
   const url=new URL(window.location.href),release=url.searchParams.get('demo');url.search='';if(release)url.searchParams.set('demo',release);url.searchParams.set('person',nextPerson);if(q)url.searchParams.set('q',q);if(topic)url.searchParams.set('topic',topic);
   setNavigationVersion(v=>v+1);hero.current?.scrollIntoView({behavior:'instant'});
   hoverBlockedUntil.current=Date.now()+650;window.history.pushState(null,'',url);setPerson(nextPerson);setConnection(topic);setQuery(q);setInput(q||PEOPLE.find(p=>p.id===nextPerson)?.name||'');setListFilter(null);setListPath([]);setActiveVideo(null);close();
@@ -41,13 +44,14 @@ export default function CommercialDemo() {
   if(preview?.expanded||preview?.label===next.label)return;
   hover.current=setTimeout(()=>{setActiveVideo(null);setPreview(next);},260);
  }
- function showMoments(ids:string[]|null=null,path:string[]=[]){close();setActiveVideo(null);setListPath(path);setListFilter(ids);requestAnimationFrame(()=>{moments.current?.scrollIntoView({block:'start',behavior:'instant'});moments.current?.focus({preventScroll:true});});}
+ function showMoments(ids:string[]|null=null,path:string[]=[]){setEasterEgg(false);close();setActiveVideo(null);setListPath(path);setListFilter(ids);requestAnimationFrame(()=>{moments.current?.scrollIntoView({block:'start',behavior:'instant'});moments.current?.focus({preventScroll:true});});}
+ function showEasterEgg(){close();setActiveVideo(null);setEasterEgg(true);requestAnimationFrame(()=>{moments.current?.scrollIntoView({block:'start',behavior:'instant'});moments.current?.focus({preventScroll:true});});}
  return <div className="commercial-demo">
   <section className="demo-hero" ref={hero} aria-label="Explorar el archivo">
    <header className="demo-header"><a href="?person=keiko" onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();navigate('keiko');}}} className="demo-wordmark">CURWEN <span>ARKIV</span></a></header>
    <div className="demo-search-anchor">
     <form role="search" className="search-field" onSubmit={e=>{e.preventDefault();search(input);}}><label htmlFor="demo-search" className="sr-only">Buscar en Curwen Arkiv</label><input id="demo-search" value={input} onChange={e=>setInput(e.target.value)} placeholder="Buscar en el archivo" maxLength={200}/><button aria-label="Buscar" type="submit" className="demo-search-submit">↵</button></form>
-    <nav aria-label="Explorar personajes">{PEOPLE.map(p=><button key={p.id} aria-pressed={person===p.id} onClick={()=>navigate(p.id)}>{p.name}</button>)}<button aria-pressed={person==='all'} onClick={()=>navigate('all')}>Todos</button></nav>
+    <nav aria-label="Explorar personajes">{PEOPLE.map(p=><button key={p.id} aria-pressed={person===p.id} onClick={()=>navigate(p.id)}>{p.name}</button>)}<button aria-pressed={person==='all'} onClick={()=>navigate('all')}>Todos</button><button className="demo-easter-egg-tag" aria-pressed={easterEgg} onClick={showEasterEgg}>Todo está acá</button></nav>
    </div>
    {connection&&<div className="demo-breadcrumb"><button onClick={()=>navigate(person,query)}>← {who?.name||query||'Archivo'}</button><span>/ {connection}</span></div>}
    {results.length>0?<DemoNetwork key={JSON.stringify([person,query,connection,navigationVersion])} label={label} items={results} onPreview={showPreview} onLeave={cancelHover} onGraphChange={()=>{close();hoverBlockedUntil.current=Date.now()+650;}} onMoments={(items,path)=>showMoments(items.map(m=>m.id),path)} activeLabel={preview?.label??''} busy={!!preview||!!activeVideo}/>:<div className="demo-empty"><h2>No hay coincidencias en esta selección.</h2><p>Prueba con Keiko, RLA, Chibolín o Magaly.</p><button className="text-action" onClick={()=>navigate('keiko')}>Volver a la red ↗</button></div>}
@@ -55,10 +59,10 @@ export default function CommercialDemo() {
   </section>
   <VolumeControl/>
   {preview&&<DemoEvidence key={preview.label} selection={preview} onClose={close} onExpand={()=>setPreview({...preview,expanded:true})} onMoments={()=>showMoments(preview.items.map(m=>m.id),preview.path??[label,preview.label])}/>}
-  {results.length>0&&<section ref={moments} tabIndex={-1} className="demo-results" aria-label="Momentos por episodio">
-   <div className="demo-section-title"><div><p className="demo-kicker">Evidencia · {shown.length} {shown.length===1?'momento':'momentos'} · {new Set(shown.map(m=>m.episode.videoId)).size} {new Set(shown.map(m=>m.episode.videoId)).size===1?'episodio':'episodios'}</p><h2>{listPath.length?listPath.join(' → '):label}</h2></div><button className="text-action" onClick={()=>{close();setActiveVideo(null);hero.current?.scrollIntoView({behavior:'instant'});}}>Volver a la red ↑</button></div>
-   {listFilter&&<button className="text-action" onClick={()=>{setListFilter(null);setListPath([]);setActiveVideo(null);}}>Ver todos los momentos de {label} ×</button>}
-   <DemoMomentList key={listPath.join("|")} items={shown} activeId={activeVideo} setActiveId={id=>{close();setActiveVideo(id);}}/>
+  {(results.length>0||easterEgg)&&<section ref={moments} tabIndex={-1} className="demo-results" aria-label="Momentos por episodio">
+   <div className="demo-section-title"><div><p className="demo-kicker">{easterEgg?'4 momentos':<>Evidencia · {shown.length} {shown.length===1?'momento':'momentos'} · {new Set(shown.map(m=>m.episode.videoId)).size} {new Set(shown.map(m=>m.episode.videoId)).size===1?'episodio':'episodios'}</>}</p><h2>{easterEgg?'Todo está acá':listPath.length?listPath.join(' → '):label}</h2></div><button className="text-action" onClick={()=>{close();setActiveVideo(null);hero.current?.scrollIntoView({behavior:'instant'});}}>Volver a la red ↑</button></div>
+   {!easterEgg&&listFilter&&<button className="text-action" onClick={()=>{setListFilter(null);setListPath([]);setActiveVideo(null);}}>Ver todos los momentos de {label} ×</button>}
+   {easterEgg?<EasterEggMoments activeId={activeVideo} setActiveId={id=>{close();setActiveVideo(id);}}/>:<DemoMomentList key={listPath.join("|")} items={shown} activeId={activeVideo} setActiveId={id=>{close();setActiveVideo(id);}}/>}
 
   </section>}
  </div>;
