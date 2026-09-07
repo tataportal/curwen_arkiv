@@ -407,3 +407,22 @@ body:has(.moments-dialog[open]) .volume-control.is-floating { visibility:hidden;
 .demo-search-anchor nav .demo-easter-egg-tag:hover,.demo-search-anchor nav .demo-easter-egg-tag:focus-visible{color:#edf4e7}
 .demo-egg-transcript{margin-top:16px;color:#a1aa9c;font-size:13px}
 .demo-egg-transcript summary{cursor:pointer}
+
+/* Small companion, clear of volume on the left and graph controls on the right. */
+.pixel-mascot{position:fixed;left:68px;bottom:max(13px,env(safe-area-inset-bottom));z-index:35;isolation:isolate}
+.mascot-trigger{display:block;width:76px;height:76px;padding:0;border:0;background:none;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.mascot-trigger:focus-visible{outline:1px solid #cad4b8;outline-offset:5px;border-radius:8px}
+.mascot-idle,.mascot-reaction{display:block;width:100%;height:100%;transform-origin:50% 85%}
+.mascot-idle{animation:mascot-bob 5.6s steps(6,end) infinite}
+.mascot-sprite{display:block;width:100%;height:100%;image-rendering:pixelated;filter:drop-shadow(0 4px 3px #0008)}
+.mascot-trigger:hover .mascot-idle,.mascot-trigger:focus-visible .mascot-idle,.pixel-mascot[data-paused=true] .mascot-idle{animation-play-state:paused}
+.pixel-mascot.is-speaking .mascot-reaction{animation:mascot-pop .5s steps(5,end) both}
+.mascot-bubble{position:absolute;bottom:calc(100% + 8px);left:15px;max-width:min(220px,calc(100vw - 110px));width:max-content;font:13px/1.45 ui-monospace,SFMono-Regular,monospace;color:#182018;pointer-events:none}
+.mascot-bubble>span{display:block;padding:12px 15px;background:#e7ecd8;box-shadow:4px 0 #a8b797,-4px 0 #a8b797,0 4px #a8b797,0 -4px #a8b797;animation:mascot-speech .16s steps(3,end) both}
+.mascot-bubble>span:after{content:'';position:absolute;bottom:-10px;left:15px;width:9px;height:9px;background:#a8b797;box-shadow:4px 4px #a8b797}
+body:has(.demo-evidence.is-expanded) .pixel-mascot{visibility:hidden}
+@keyframes mascot-bob{0%,100%{transform:translateY(0) rotate(-2deg)}35%{transform:translateY(-5px) rotate(2deg)}60%{transform:translateY(-2px) rotate(0)}82%{transform:translateY(-4px) rotate(-1deg)}}
+@keyframes mascot-pop{0%{transform:scale(1)}25%{transform:translateY(2px) scale(1.08,.88)}55%{transform:translateY(-9px) scale(.94,1.08) rotate(3deg)}100%{transform:scale(1)}}
+@keyframes mascot-speech{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:640px){.pixel-mascot{left:49px;bottom:max(12px,env(safe-area-inset-bottom))}.mascot-trigger{width:58px;height:58px}.mascot-bubble{font-size:12px;left:0}}
+@media(prefers-reduced-motion:reduce){.mascot-idle,.pixel-mascot.is-speaking .mascot-reaction,.mascot-bubble>span{animation:none}}

@@ -7,6 +7,7 @@ import DemoEvidence from './DemoEvidence';
 import VolumeControl from './VolumeControl';
 import DemoMomentList from './DemoMomentList';
 import EasterEggMoments from './EasterEggMoments';
+import PixelMascot from './PixelMascot';
 
 export default function CommercialDemo() {
  const [navigationVersion,setNavigationVersion]=useState(0),[easterEgg,setEasterEgg]=useState(false);
@@ -58,6 +59,7 @@ export default function CommercialDemo() {
    {results.length>0&&<div className="demo-hero-bottom"><p>Explora un concepto · clic para expandir</p><button onClick={()=>showMoments()} aria-label={'Ver '+results.length+' momentos'}>Ver {results.length} momentos <span>↓</span></button></div>}
   </section>
   <VolumeControl/>
+  <PixelMascot paused={!!preview||!!activeVideo}/>
   {preview&&<DemoEvidence key={JSON.stringify([preview.label,preview.path])} selection={preview} onClose={close} onExpand={()=>setPreview({...preview,expanded:true})} onMoments={()=>showMoments(preview.items.map(m=>m.id),preview.path??[label,preview.label])}/>}
   {(results.length>0||easterEgg)&&<section ref={moments} tabIndex={-1} className="demo-results" aria-label="Momentos por episodio">
    <div className="demo-section-title"><div><p className="demo-kicker">{easterEgg?'4 momentos':<>Evidencia · {shown.length} {shown.length===1?'momento':'momentos'} · {new Set(shown.map(m=>m.episode.videoId)).size} {new Set(shown.map(m=>m.episode.videoId)).size===1?'episodio':'episodios'}</>}</p><h2>{easterEgg?'Todo está acá':listPath.length?listPath.join(' → '):label}</h2></div><button className="text-action" onClick={()=>{close();setActiveVideo(null);hero.current?.scrollIntoView({behavior:'instant'});}}>Volver a la red ↑</button></div>

@@ -19,6 +19,7 @@ if (!key.startsWith('sb_publishable_')) {
 }
 const stage = await mkdtemp(join(tmpdir(), 'curwen-pages-'));
 await mkdir(join(stage, 'src'), { recursive: true });
+await cp(join(root, 'public'), join(stage, 'public'), { recursive: true });
 // Assemble a static presentation build without modifying the working app,
 // ingestion, migrations, corpus, or API handlers.
 await cp(join(root, 'src'), join(stage, 'src'), { recursive: true, filter: path => {
@@ -33,7 +34,7 @@ await writeFile(join(stage, 'next.config.mjs'), 'export default ' + JSON.stringi
 const env = {
   PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR,
   NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1',
-  NEXT_PUBLIC_STATIC_ARCHIVE: 'true', NEXT_PUBLIC_SUPABASE_URL: url,
+  NEXT_PUBLIC_STATIC_ARCHIVE: 'true', NEXT_PUBLIC_ASSET_BASE_PATH: basePath, NEXT_PUBLIC_SUPABASE_URL: url,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: key,
   NEXT_PUBLIC_RETRIEVAL_API_BASE: process.env.NEXT_PUBLIC_RETRIEVAL_API_BASE || 'https://curwen-retrieval-api.tataportal.chatgpt.site',
 };
