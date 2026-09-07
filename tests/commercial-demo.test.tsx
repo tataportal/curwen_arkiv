@@ -104,3 +104,37 @@ test('perspective and lateral connections preserve evidence and the root anchor'
  for(const edge of lateral){const a=graph.nodes.find(n=>n.id===edge.from)!,b=graph.nodes.find(n=>n.id===edge.to)!;assert(edge.momentIds.every(id=>a.items.some(m=>m.id===id)&&b.items.some(m=>m.id===id)));assert(connectionPath(projectNode(a),projectNode(b),edge.from+edge.to).includes(' Q '));}
  for(const n of graph.nodes){const p=projectNode(n,40);assert(Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.k>0);}
 });
+
+import {focusDemoMoment,demoOccurrence} from '../src/lib/commercial-demo';
+import DemoMomentList from '../src/components/DemoMomentList';
+test('La República and inteligencia artificial retain the shared moment but use different source mentions',()=>{
+ const base=DEMO_MOMENTS.find(m=>m.id==='8b3deb13a354')!;
+ const newspaper=focusDemoMoment(base,'La República'),ai=focusDemoMoment(base,'inteligencia artificial');
+ assert.equal(newspaper.id,ai.id);assert.equal(newspaper.occurrence,base.occurrence);assert.equal(ai.occurrence,base.occurrence);
+ assert.equal(base.occurrence.cue_start_seconds,3084.64);
+ assert.equal(demoOccurrence(newspaper).cue_start_seconds,3064.44);assert.equal(demoOccurrence(ai).cue_start_seconds,3181.359);
+ assert.equal(evidenceStartSeconds(demoOccurrence(newspaper).cue_start_seconds),3061);
+ assert.equal(evidenceStartSeconds(demoOccurrence(ai).cue_start_seconds),3178);
+ assert.notEqual(newspaper.selectedEvidence!.quote,ai.selectedEvidence!.quote);
+ for(const m of [newspaper,ai]){
+  const html=renderToStaticMarkup(<DemoMomentList items={[m]} activeId={null} setActiveId={()=>{}}/>);
+  assert(html.includes(m.selectedEvidence!.quote));assert(html.includes('Mención de '));
+  assert(html.includes('t='+evidenceStartSeconds(demoOccurrence(m).cue_start_seconds)+'s'));
+  assert(!html.includes('t=3081s'));assert(m.selectedEvidence!.excerptCueIds.length>1);
+ }
+});
+test('all 68 curated topic connections have a dedicated source anchor, with nonliteral topics labelled honestly',()=>{
+ let total=0,nonliteral=0;
+ for(const m of DEMO_MOMENTS)for(const t of m.topics){
+  const selected=focusDemoMoment(m,t.label),e=selected.selectedEvidence!;total++;
+  assert(e);assert.equal(e.quote,t.quote);assert.equal(e.occurrence.videoId,m.episode.videoId);
+  assert(e.context.some(c=>c.cueIds.includes(e.occurrence.cueId)));
+  assert(e.context.some(c=>c.startSeconds<=e.occurrence.cue_start_seconds));
+  assert(e.sourceHash.length===64);assert.equal(focusDemoMoment(selected).occurrence,m.occurrence);
+  if(e.anchorType==='supporting-quote')nonliteral++;
+ }
+ assert.equal(total,68);assert(nonliteral>0);
+ const security=focusDemoMoment(DEMO_MOMENTS.find(m=>m.id==='08265f25da0c')!,'seguridad');
+ const html=renderToStaticMarkup(<DemoMomentList items={[security]} activeId={null} setActiveId={()=>{}}/>);
+ assert(html.includes('Cita sobre '));assert(!html.includes('Mención de '));
+});

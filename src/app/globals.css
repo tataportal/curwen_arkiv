@@ -399,3 +399,4 @@ body:has(.moments-dialog[open]) .volume-control.is-floating { visibility:hidden;
 .demo-node-actions,.demo-network-controls{z-index:4}
 @media(max-width:640px){.demo-network-viewport{inset:198px 12px 228px}.demo-network .demo-node[data-plane=background]>span{filter:none;opacity:.72}}
 @media(prefers-reduced-motion:reduce){.demo-network .ambient-backdrop{animation:none!important;opacity:.45;transform:none}}
+.demo-connection-quote{margin:6px 0 20px;padding:12px 0 12px 18px;border-left:1px solid #aabda773}.demo-connection-quote>span{font-size:10px;color:var(--secondary)}.demo-connection-quote blockquote{margin:8px 0;font-size:16px;color:#d1dbca;line-height:1.6}.demo-connection-quote details{margin-top:10px}.demo-connection-quote summary{font-size:10px;color:var(--secondary);cursor:pointer}.demo-connection-quote details p{font-size:12px;margin-top:12px}

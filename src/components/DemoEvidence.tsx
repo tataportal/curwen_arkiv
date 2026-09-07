@@ -3,6 +3,7 @@
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {DemoSelection} from './DemoNetwork';
+import {demoOccurrence} from '@/lib/commercial-demo';
 import VideoPreview from './VideoPreview';
 import {insidePreviewBuffer,PREVIEW_LEAVE_DELAY_MS} from '@/lib/preview-buffer';
 import {buildYouTubeTimestampUrl,evidenceStartSeconds,formatTimestamp} from '@/lib/utils';
@@ -37,15 +38,16 @@ export default function DemoEvidence({selection,onClose,onExpand,onMoments}:{sel
  },[expanded]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();onClose();}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[onClose]);
  if(!moment)return null;
- const timestamp=buildYouTubeTimestampUrl(moment.episode.videoId,evidenceStartSeconds(moment.occurrence.cue_start_seconds));
+ const timestamp=buildYouTubeTimestampUrl(moment.episode.videoId,evidenceStartSeconds(demoOccurrence(moment).cue_start_seconds));
  return createPortal(<><div className={'demo-preview-scrim'+(expanded?' is-expanded':'')} onClick={onClose} aria-hidden="true"/>
   <div ref={card} role="dialog" aria-modal={expanded||undefined} aria-label={'Preview: '+selection.label} className={'demo-evidence'+(expanded?' is-expanded':'')} style={expanded?undefined:position} onKeyDown={e=>{if(!expanded||e.key!=='Tab')return;const focusable=card.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input');if(!focusable?.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}} onClickCapture={e=>{if(!expanded&&(e.target as HTMLElement).closest('.preview-video-link')){e.preventDefault();e.stopPropagation();onExpand();}}}>
    <header><span>{selection.label}</span><button onClick={onClose} aria-label="Cerrar preview">×</button></header>
-   <VideoPreview continuous key={moment.id} youtubeId={moment.episode.videoId} occurrence={moment.occurrence} title={moment.title}/>
+   <VideoPreview continuous key={demoOccurrence(moment).occurrenceId} youtubeId={moment.episode.videoId} occurrence={demoOccurrence(moment)} title={moment.title}/>
    <div className="demo-evidence-copy">
-    <div className="demo-evidence-title"><a className="demo-timestamp" data-cue-start-seconds={moment.occurrence.cue_start_seconds} href={timestamp} target="_blank" rel="noopener noreferrer">{formatTimestamp(moment.occurrence.cue_start_seconds)} ↗</a><h2><button onClick={onExpand}>{moment.title}</button></h2></div>
+    <div className="demo-evidence-title"><a className="demo-timestamp" data-cue-start-seconds={demoOccurrence(moment).cue_start_seconds} href={timestamp} target="_blank" rel="noopener noreferrer">{formatTimestamp(demoOccurrence(moment).cue_start_seconds)} ↗</a><h2><button onClick={onExpand}>{moment.selectedEvidence?'«'+moment.selectedEvidence.quote+'»':moment.title}</button></h2></div>
+    {moment.selectedEvidence&&<p className="demo-note">{moment.selectedEvidence.anchorType==='concept-mention'?'Mención de ':'Cita sobre '}{moment.selectedEvidence.label} · {moment.title}</p>}
     {!expanded&&<button className="demo-preview-hint" onClick={onExpand}>Clic en el video para ampliar ↗</button>}
-    {expanded&&<p className="demo-note">Video desde {formatTimestamp(evidenceStartSeconds(moment.occurrence.cue_start_seconds))} · hasta 3 s antes de la mención. Los resúmenes y el contexto están en los momentos de abajo.</p>}
+    {expanded&&<p className="demo-note">Video desde {formatTimestamp(evidenceStartSeconds(demoOccurrence(moment).cue_start_seconds))} · hasta 3 s antes de la mención. Los resúmenes y el contexto están en los momentos de abajo.</p>}
     <div className="demo-evidence-actions"><button className="text-action" onClick={onMoments}>Ver {selection.items.length} {selection.items.length===1?'momento':'momentos'} ↓</button>{expanded&&selection.items.length>1&&<div><button aria-label="Momento anterior" disabled={index===0} onClick={()=>{setIndex(index-1);}}>←</button><span>{index+1} / {selection.items.length}</span><button aria-label="Momento siguiente" disabled={index===selection.items.length-1} onClick={()=>{setIndex(index+1);}}>→</button></div>}</div>
    </div>
   </div></>,document.body);

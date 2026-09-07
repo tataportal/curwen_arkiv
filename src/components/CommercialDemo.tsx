@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {DEMO_MOMENTS,PEOPLE,demoSearch,normalizeDemo} from '@/lib/commercial-demo';
+import {DEMO_MOMENTS,PEOPLE,demoSearch,normalizeDemo,focusDemoMoment} from '@/lib/commercial-demo';
 import DemoNetwork,{type DemoSelection} from './DemoNetwork';
 import DemoEvidence from './DemoEvidence';
 import VolumeControl from './VolumeControl';
@@ -13,7 +13,7 @@ export default function CommercialDemo() {
  const [connection,setConnection]=useState(''),[preview,setPreview]=useState<DemoSelection|null>(null),[listFilter,setListFilter]=useState<string[]|null>(null);
  const hover=useRef<ReturnType<typeof setTimeout>|null>(null),hoverBlockedUntil=useRef(0),hero=useRef<HTMLElement>(null),moments=useRef<HTMLElement>(null);
  const results=demoSearch(person,query).filter(m=>!connection||m.topics.some(t=>t.label===connection));
- const shown=listFilter?results.filter(m=>listFilter.includes(m.id)):results;
+ const shown=(listFilter?results.filter(m=>listFilter.includes(m.id)):results).map(m=>focusDemoMoment(m,listPath.at(-1)??connection));
  const who=PEOPLE.find(p=>p.id===person),label=connection||query||who?.fullName||'El archivo';
  const close=useCallback(()=>{if(hover.current)clearTimeout(hover.current);setPreview(null);},[]);
  const cancelHover=useCallback(()=>{if(hover.current)clearTimeout(hover.current);},[]);
@@ -23,7 +23,7 @@ export default function CommercialDemo() {
   const nextPerson=PEOPLE.some(x=>x.id===selectedPerson)||selectedPerson==='all'?selectedPerson!:legacy?.id??(q?'all':'keiko');
   setPerson(nextPerson);setQuery(legacy?'':q);setInput(legacy?.name??(q||PEOPLE.find(p=>p.id===nextPerson)?.name||''));setConnection(p.get('topic')??'');setListFilter(null);setListPath([]);setActiveVideo(null);close();
   const shared=DEMO_MOMENTS.find(m=>m.id===p.get('moment'));
-  if(shared){setPerson(shared.person);setQuery('');setConnection('');setListFilter([shared.id]);setListPath([PEOPLE.find(p=>p.id===shared.person)?.name??'',shared.title]);setActiveVideo(shared.id);requestAnimationFrame(()=>moments.current?.scrollIntoView({behavior:'instant'}));}
+  if(shared){setPerson(shared.person);setQuery('');setConnection('');setListFilter([shared.id]);setListPath([PEOPLE.find(p=>p.id===shared.person)?.name??'',shared.topics.some(t=>t.label===p.get('topic'))?p.get('topic')!:shared.title]);setActiveVideo(shared.id);requestAnimationFrame(()=>moments.current?.scrollIntoView({behavior:'instant'}));}
  }
  useEffect(()=>{restore();window.addEventListener('popstate',restore);return()=>window.removeEventListener('popstate',restore);},[]);
  function navigate(nextPerson:string,q='',topic='') {
@@ -32,6 +32,7 @@ export default function CommercialDemo() {
  }
  function search(q:string){const match=PEOPLE.find(p=>p.aliases.some(a=>a===normalizeDemo(q)));navigate(match?.id??'all',match?'':q);}
  function showPreview(next:DemoSelection) {
+  next={...next,items:next.items.map(m=>focusDemoMoment(m,next.path?.at(-1)??next.label))};
   cancelHover();
   if(!next.expanded&&Date.now()<hoverBlockedUntil.current)return;
   if(next.expanded){setActiveVideo(null);setPreview(next);return;}
