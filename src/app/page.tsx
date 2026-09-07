@@ -1,2 +1,2 @@
-import SearchExperience from '@/components/SearchExperience';
-export default function Home() { return <SearchExperience />; }
+import CommercialDemo from '@/components/CommercialDemo';
+export default function Home(){return <CommercialDemo/>;}
